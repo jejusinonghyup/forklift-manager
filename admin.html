@@ -206,7 +206,7 @@
         <div class="filters">
           <div class="field"><label>사무소명</label><input type="text" id="newOfficeName" placeholder="예: 제주시지점"></div>
           <button class="btn" id="addOfficeBtn">추가</button>
-          <button class="btn btn-outline" id="seedOfficesBtn">7개 사무소 일괄 등록</button>
+          <button class="btn btn-outline" id="seedOfficesBtn">8개 사무소 일괄 등록</button>
         </div>
         <div class="msg" id="officeMsg"></div>
         <div class="divider-stripe"></div>
@@ -650,9 +650,9 @@
   }
 
   document.getElementById('seedOfficesBtn').addEventListener('click', async () => {
-    const names = ['하나로마트 제주점','하나로마트 노형점','하나로마트 오라점','동부영농지원센터','서부영농지원센터','농산물공판장','농산물산지유통센터'];
+    const names = ['본점','하나로마트 제주점','하나로마트 노형점','하나로마트 오라점','동부영농지원센터','서부영농지원센터','농산물공판장','농산물산지유통센터'];
     const msgEl = document.getElementById('officeMsg');
-    if (!confirm('7개 사무소를 일괄 등록할까요? (이미 있는 이름은 덮어씁니다)')) return;
+    if (!confirm('8개 사무소를 일괄 등록할까요? (이미 있는 이름은 덮어씁니다)')) return;
     try{
       const batch = db.batch();
       names.forEach(name => {
@@ -660,7 +660,7 @@
         batch.set(ref, { name, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
       });
       await batch.commit();
-      showMsg(msgEl, '7개 사무소가 등록되었습니다.', 'success');
+      showMsg(msgEl, '8개 사무소가 등록되었습니다.', 'success');
       loadOfficeFilter(); loadOfficeManagement();
     }catch(err){ showMsg(msgEl, '등록 실패: ' + err.message, 'error'); }
   });
