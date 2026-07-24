@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>지게차 사용대장 - 관리자</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F2ED; --surface:#FFFFFF; --ink:#1C1B1A; --ink-soft:#6B675F;
+    --amber:#F5A623; --amber-deep:#B9720A; --line:#E3DFD4;
+    --danger:#C0392B; --success:#2F7D4F; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',sans-serif;}
+  .hazard-bar{height:8px;width:100%;background:repeating-linear-gradient(-45deg,var(--amber) 0px,var(--amber) 14px,var(--ink) 14px,var(--ink) 28px);}
+  header{padding:22px 24px 8px;max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+  .eyebrow{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.22em;color:var(--amber-deep);text-transform:uppercase;margin:0 0 4px;}
+  h1{margin:0;font-size:24px;font-weight:900;}
+  .top-actions a, .top-actions button{font-size:12.5px;font-weight:700;color:var(--amber-deep);background:none;border:none;cursor:pointer;text-decoration:underline;margin-left:14px;}
+  main{max-width:1100px;margin:0 auto;padding:6px 24px 60px;}
+  .tabs{display:flex;gap:6px;margin:14px 0 16px;}
+  .tab-btn{padding:9px 16px;border-radius:999px;border:1.5px solid var(--line);background:#fff;font-family:inherit;
+    font-size:13.5px;font-weight:700;cursor:pointer;color:var(--ink-soft);}
+  .tab-btn.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .tabpanel{display:none;} .tabpanel.active{display:block;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:0 1px 2px rgba(28,27,26,.04);}
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
+  .filters .field{display:flex;flex-direction:column;gap:5px;}
+  .filters label{font-size:12px;font-weight:700;color:var(--ink-soft);}
+  select,input[type=text],input[type=date],input[type=time],textarea{
+    padding:9px 10px;font-size:13.5px;font-family:inherit;color:var(--ink);
+    background:#FBFAF7;border:1.5px solid var(--line);border-radius:8px;
+  }
+  textarea{resize:vertical;min-height:44px;width:100%;}
+  .btn{padding:9px 16px;border:none;border-radius:8px;background:var(--ink);color:#fff;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;}
+  .btn:hover{background:#000;}
+  .btn-outline{background:#fff;color:var(--ink);border:1.5px solid var(--line);}
+  .btn-outline:hover{background:#F5F3EE;}
+  .btn-danger{background:var(--danger);}
+  .btn-sm{padding:5px 10px;font-size:12px;border-radius:6px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px;}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top;}
+  th{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);font-weight:700;}
+  tr:hover td{background:#FBFAF6;}
+  .empty-state{color:var(--ink-soft);font-size:13.5px;padding:16px 0;text-align:center;}
+  .summary-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px;color:var(--ink-soft);}
+  .actions-cell{white-space:nowrap;}
+  .edit-input{width:100%;min-width:70px;}
+  .badge{display:inline-block;background:#FBF0DA;color:var(--amber-deep);font-weight:700;font-size:11px;padding:2px 8px;border-radius:20px;}
+  .divider-stripe{height:5px;width:56px;border-radius:3px;
+    background:repeating-linear-gradient(-45deg,var(--amber) 0px,var(--amber) 6px,var(--ink) 6px,var(--ink) 12px);margin:24px 0 12px;}
+  .subsection-title{font-size:14.5px;font-weight:900;margin:0 0 10px;}
+  .vehicle-row{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;}
+  .vehicle-row:last-child{border-bottom:none;}
+  .vehicle-row .grow{flex:1;}
+  .msg{margin-top:10px;padding:10px 12px;border-radius:8px;font-size:13px;display:none;}
+  .msg.show{display:block;} .msg.success{background:#EAF5EE;color:var(--success);border:1px solid #BFE3CC;}
+  .msg.error{background:#FBEAE8;color:var(--danger);border:1px solid #F1C4BE;}
+  .center-screen{min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;}
+  .screen{display:none;} .screen.active{display:block;}
+  @media (max-width: 720px){
+    table, thead, tbody, th, td, tr{display:block;}
+    thead{display:none;}
+    tr{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;padding:8px;}
+    td{border:none;padding:4px 2px;}
+    td::before{content:attr(data-label);font-size:11px;font-weight:700;color:var(--ink-soft);display:block;}
+  }
+  @page{ size: A4 landscape; margin: 14mm 16mm; }
+  @media print{
+    body *{ visibility:hidden; }
+    #previewOverlay, #previewOverlay *{ visibility:visible; }
+    #previewOverlay{ position:absolute; inset:0; background:#fff; padding:0; display:block !important; }
+    .preview-toolbar{ display:none !important; }
+    .preview-modal{ box-shadow:none; border-radius:0; max-width:100%; }
+    .preview-page{ padding:0; }
+  }
+  .preview-overlay{
+    position:fixed;inset:0;background:rgba(28,27,26,.6);display:none;align-items:flex-start;justify-content:center;
+    z-index:2000;overflow-y:auto;padding:24px 12px;
+  }
+  .preview-overlay.show{display:flex;}
+  .preview-modal{background:#fff;width:100%;max-width:1050px;border-radius:12px;overflow:hidden;margin-bottom:24px;}
+  .preview-toolbar{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;
+    background:#F5F3EE;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:1;}
+  .preview-toolbar-title{font-weight:800;font-size:14px;}
+  .preview-page{padding:26px 30px;}
+  .preview-page table.log-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:14px;table-layout:fixed;}
+  .preview-page table.log-table th,.preview-page table.log-table td{border:1px solid #bbb;padding:6px 7px;text-align:left;vertical-align:top;word-break:break-word;}
+  .preview-page table.log-table th{background:#F5F3EE;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;}
+  .history-block{margin:2px 0;padding:8px 10px;background:#FBF6E8;border:1px dashed #D8C58F;border-radius:6px;font-size:11px;color:#6B5B2A;}
+  .history-block b{display:block;margin-bottom:3px;color:#4A3D14;}
+  .edit-badge{display:inline-block;background:#FBF0DA;color:var(--amber-deep);font-size:10.5px;font-weight:700;
+    padding:1px 7px;border-radius:10px;margin-left:5px;cursor:pointer;}
+  .history-row td{background:#FCFAF4;}
+  .print-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:4px;flex-wrap:wrap;}
+  .print-title-row h2{font-size:20px;font-weight:900;margin:0;font-family:'Oswald',sans-serif;letter-spacing:.02em;white-space:nowrap;}
+  .print-subtitle{font-size:12.5px;color:var(--ink-soft);margin:0 0 16px;white-space:nowrap;}
+  .approval-table{border-collapse:collapse;flex-shrink:0;width:auto;margin-left:auto;}
+  .approval-table td{border:1px solid #333;text-align:center;font-size:11px;color:#333;padding:0;white-space:nowrap;}
+  .approval-table .approval-label{width:auto;padding:3px 10px;font-weight:700;background:#F5F3EE;}
+  .approval-table .approval-sign{width:20mm;height:15mm;}
+</style>
+</head>
+<body>
+
+<div class="hazard-bar no-print"></div>
+
+<div id="checkingScreen" class="screen active">
+  <div class="center-screen"><p>권한 확인 중…</p></div>
+</div>
+
+<div id="deniedScreen" class="screen">
+  <div class="center-screen">
+    <h2>접근 권한이 없습니다</h2>
+    <p style="color:var(--ink-soft);">관리자 계정으로만 접근할 수 있습니다.</p>
+    <a href="index.html" class="btn" style="text-decoration:none;display:inline-block;">사용자 화면으로 이동</a>
+  </div>
+</div>
+
+<div id="adminScreen" class="screen">
+  <header>
+    <div>
+      <p class="eyebrow no-print">ADMIN DASHBOARD</p>
+      <h1>사용대장 관리자 <span class="badge" id="roleBadge" style="vertical-align:middle;"></span></h1>
+    </div>
+    <div class="top-actions no-print">
+      <a href="permissions.html" id="permissionsLink" style="display:none;">권한 설정 →</a>
+      <a href="index.html">사용자 화면 →</a>
+      <button id="logoutBtn">로그아웃</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="tabs no-print">
+      <button class="tab-btn active" data-tab="logTab">사용내역</button>
+      <button class="tab-btn" data-tab="vehicleTab">사무소·차량 관리</button>
+      <button class="tab-btn" data-tab="userTab">사용자 관리</button>
+    </div>
+
+    <!-- ===== 사용내역 탭 ===== -->
+    <div class="tabpanel active" id="logTab">
+      <div class="card no-print">
+        <div class="filters">
+          <div class="field">
+            <label>사무소</label>
+            <select id="filterOffice"><option value="">전체</option></select>
+          </div>
+          <div class="field">
+            <label>시작일</label>
+            <input type="date" id="filterFrom">
+          </div>
+          <div class="field">
+            <label>종료일</label>
+            <input type="date" id="filterTo">
+          </div>
+          <div class="field">
+            <label>사용자명 검색</label>
+            <input type="text" id="filterName" placeholder="이름 일부 입력">
+          </div>
+          <button class="btn" id="applyFilterBtn">조회</button>
+          <button class="btn btn-outline" id="csvBtn">CSV 다운로드</button>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin-bottom:9px;">
+            <input type="checkbox" id="includeEditsCheckbox"> 수정사항 포함
+          </label>
+          <button class="btn btn-outline" id="previewBtn">미리보기·인쇄</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="summary-bar">
+          <span id="resultCount">-</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>사용일자</th><th>사무소</th><th>호수(차대번호)</th><th>사용자</th><th>소속</th>
+              <th>목적</th><th>시간</th><th>특이사항</th><th class="no-print">관리</th>
+            </tr>
+          </thead>
+          <tbody id="logTableBody"></tbody>
+        </table>
+        <p class="empty-state" id="logEmptyState" style="display:none;">조회된 사용 기록이 없습니다.</p>
+      </div>
+    </div>
+
+    <!-- ===== 인쇄 미리보기 오버레이 ===== -->
+    <div class="preview-overlay" id="previewOverlay">
+      <div class="preview-modal">
+        <div class="preview-toolbar no-print">
+          <span class="preview-toolbar-title">인쇄 미리보기</span>
+          <div>
+            <button class="btn btn-outline btn-sm" id="previewCloseBtn">닫기</button>
+            <button class="btn btn-sm" id="previewPrintBtn">인쇄하기</button>
+          </div>
+        </div>
+        <div class="preview-page" id="printArea"></div>
+      </div>
+    </div>
+
+    <!-- ===== 사무소/차량 관리 탭 ===== -->
+    <div class="tabpanel" id="vehicleTab">
+      <div class="card" id="officeManageCard">
+        <p class="subsection-title">사무소 추가</p>
+        <div class="filters">
+          <div class="field"><label>사무소명</label><input type="text" id="newOfficeName" placeholder="예: 제주시지점"></div>
+          <button class="btn" id="addOfficeBtn">추가</button>
+          <button class="btn btn-outline" id="seedOfficesBtn">7개 사무소 일괄 등록</button>
+        </div>
+        <div class="msg" id="officeMsg"></div>
+        <div class="divider-stripe"></div>
+        <p class="subsection-title">등록된 사무소</p>
+        <div id="officeList"></div>
+      </div>
+
+      <div class="card">
+        <p class="subsection-title">차량 추가</p>
+        <div class="filters">
+          <div class="field">
+            <label>사무소</label>
+            <select id="newVehicleOffice"><option value="">선택</option></select>
+          </div>
+          <div class="field"><label>호수</label><input type="text" id="newVehicleUnitNo" placeholder="예: 1호"></div>
+          <div class="field"><label>차대번호</label><input type="text" id="newVehicleChassis" placeholder="예: KMFHA17JPXC123456"></div>
+          <div class="field"><label>차종/모델 (선택)</label><input type="text" id="newVehicleModel" placeholder="예: 3톤 디젤"></div>
+          <button class="btn" id="addVehicleBtn">추가</button>
+        </div>
+        <div class="msg" id="vehicleMsg"></div>
+        <div class="divider-stripe"></div>
+        <p class="subsection-title">등록된 차량</p>
+        <div id="vehicleList"></div>
+      </div>
+    </div>
+
+    <!-- ===== 사용자 관리 탭 ===== -->
+    <div class="tabpanel" id="userTab">
+      <div class="card">
+        <p class="subsection-title">직원 사무소·정보 관리</p>
+        <p class="hint" style="color:var(--ink-soft);font-size:12.5px;margin:0 0 10px;">
+          인사이동 시 여기서 직접 사무소를 변경할 수 있습니다. (본인도 사용자 화면의 "정보 수정"에서 직접 변경 가능)
+        </p>
+        <table>
+          <thead><tr><th>이메일</th><th>이름</th><th>직명</th><th>사무소</th><th>소속</th><th class="no-print">관리</th></tr></thead>
+          <tbody id="userTableBody"></tbody>
+        </table>
+        <p class="empty-state" id="userEmptyState" style="display:none;">등록된 사용자가 없습니다.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+  // ====== index.html과 동일한 Firebase 설정값을 붙여넣으세요 ======
+  const firebaseConfig = {
+    apiKey: "AIzaSyBA89-plyLxHqint_g70sTSCqPFQPhNtl0",
+    authDomain: "forklift-manager-d1d5b.firebaseapp.com",
+    projectId: "forklift-manager-d1d5b",
+    storageBucket: "forklift-manager-d1d5b.firebasestorage.app",
+    messagingSenderId: "921670187536",
+    appId: "1:921670187536:web:be44fe36220c34be442895"
+  };
+  // ================================================================
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  let currentUser = null;
+  let currentLogs = []; // 마지막 조회 결과 캐시 (수정/삭제/CSV용)
+
+  function showScreen(id){
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+  function escapeHtml(str){
+    if (str === undefined || str === null) return '';
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function showMsg(el, text, type){ el.textContent = text; el.className = 'msg show ' + type; setTimeout(()=>el.classList.remove('show'), 3500); }
+  document.addEventListener('click', (e) => {
+    if (e.target.tagName === 'INPUT' && e.target.type === 'time'){
+      try{ e.target.showPicker(); }catch(err){ /* 미지원 브라우저는 기본 동작 유지 */ }
+    }
+  });
+
+  let myRole = null;
+  let myOfficeScope = null;
+
+  auth.onAuthStateChanged(async (user) => {
+    if (!user){ window.location.href = 'index.html'; return; }
+    currentUser = user;
+    const adminDoc = await db.collection('admins').doc(user.uid).get();
+    if (!adminDoc.exists){ showScreen('deniedScreen'); return; }
+    const data = adminDoc.data();
+    myRole = data.role;
+    myOfficeScope = data.office || null;
+    showScreen('adminScreen');
+    applyRoleUI();
+    initAdmin();
+  });
+  document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(()=>window.location.href='index.html'));
+
+  function applyRoleUI(){
+    const badge = document.getElementById('roleBadge');
+    if (myRole === 'super'){
+      badge.textContent = '총괄 관리자';
+      document.getElementById('permissionsLink').style.display = 'inline';
+    } else {
+      badge.textContent = '사무소 관리자 · ' + myOfficeScope;
+      document.getElementById('officeManageCard').style.display = 'none';
+    }
+  }
+
+  // ---- 탭 전환 ----
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.tabpanel').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  function initAdmin(){
+    loadOfficeFilter();
+    loadOfficeManagement();
+    loadVehicleManagement();
+    loadUserManagement();
+    runQuery();
+  }
+
+  async function loadOfficeFilter(){
+    const sel = document.getElementById('filterOffice');
+    const sel2 = document.getElementById('newVehicleOffice');
+
+    if (myRole === 'office'){
+      sel.innerHTML = ''; sel2.innerHTML = '';
+      const o1 = document.createElement('option'); o1.value = myOfficeScope; o1.textContent = myOfficeScope; sel.appendChild(o1);
+      const o2 = document.createElement('option'); o2.value = myOfficeScope; o2.textContent = myOfficeScope; sel2.appendChild(o2);
+      sel.value = myOfficeScope; sel.disabled = true;
+      sel2.value = myOfficeScope; sel2.disabled = true;
+      return;
+    }
+
+    sel.innerHTML = '<option value="">전체</option>';
+    sel2.innerHTML = '<option value="">선택</option>';
+    const snap = await db.collection('offices').orderBy('name').get();
+    snap.forEach(d => {
+      const name = d.data().name;
+      const o1 = document.createElement('option'); o1.value = name; o1.textContent = name; sel.appendChild(o1);
+      const o2 = document.createElement('option'); o2.value = name; o2.textContent = name; sel2.appendChild(o2);
+    });
+  }
+
+  // ---- 사용내역 조회 ----
+  document.getElementById('applyFilterBtn').addEventListener('click', runQuery);
+
+  async function runQuery(){
+    const office = document.getElementById('filterOffice').value;
+    const from = document.getElementById('filterFrom').value;
+    const to = document.getElementById('filterTo').value;
+    const nameFilter = document.getElementById('filterName').value.trim().toLowerCase();
+
+    let query = db.collection('logs').orderBy('useDate', 'desc');
+    if (office) query = query.where('office', '==', office);
+
+    const tbody = document.getElementById('logTableBody');
+    tbody.innerHTML = '<tr><td colspan="9">불러오는 중…</td></tr>';
+
+    try{
+      const snap = await query.limit(500).get();
+      let logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (from) logs = logs.filter(l => l.useDate >= from);
+      if (to) logs = logs.filter(l => l.useDate <= to);
+      if (nameFilter) logs = logs.filter(l => (l.userName||'').toLowerCase().includes(nameFilter));
+
+      currentLogs = logs;
+      renderLogTable(logs);
+    }catch(err){
+      tbody.innerHTML = '<tr><td colspan="9">조회 실패: '+escapeHtml(err.message)+'</td></tr>';
+    }
+  }
+
+  function renderLogTable(logs){
+    const tbody = document.getElementById('logTableBody');
+    document.getElementById('resultCount').textContent = '총 ' + logs.length + '건';
+    document.getElementById('logEmptyState').style.display = logs.length ? 'none' : 'block';
+    if (!logs.length){ tbody.innerHTML = ''; return; }
+
+    tbody.innerHTML = logs.map(l => {
+      const timeRange = (l.startTime || l.endTime) ? (l.startTime + (l.endTime?' ~ '+l.endTime:'')) : '-';
+      const editBadge = l.editCount ? '<span class="edit-badge historyBtn">수정됨 '+l.editCount+'회</span>' : '';
+      return '<tr data-id="'+l.id+'">'+
+        '<td data-label="사용일자">'+escapeHtml(l.useDate)+'</td>'+
+        '<td data-label="사무소">'+escapeHtml(l.office)+'</td>'+
+        '<td data-label="호수(차대번호)">'+escapeHtml(l.unitNo)+(l.chassisNo?'('+escapeHtml(l.chassisNo)+')':'')+(l.vehicleModel?' · '+escapeHtml(l.vehicleModel):'')+'</td>'+
+        '<td data-label="사용자">'+(l.position?escapeHtml(l.position)+' ':'')+escapeHtml(l.userName)+editBadge+'</td>'+
+        '<td data-label="소속">'+escapeHtml(l.department||'-')+'</td>'+
+        '<td data-label="목적">'+escapeHtml(l.purpose||'-')+'</td>'+
+        '<td data-label="시간">'+escapeHtml(timeRange)+'</td>'+
+        '<td data-label="특이사항">'+escapeHtml(l.notes||'-')+'</td>'+
+        '<td data-label="관리" class="actions-cell no-print">'+
+          '<button class="btn btn-outline btn-sm editBtn">수정</button> '+
+          '<button class="btn btn-danger btn-sm deleteBtn">삭제</button>'+
+        '</td>'+
+      '</tr>';
+    }).join('');
+
+    tbody.querySelectorAll('.editBtn').forEach(btn => btn.addEventListener('click', (e) => openEditRow(e.target.closest('tr'))));
+    tbody.querySelectorAll('.deleteBtn').forEach(btn => btn.addEventListener('click', (e) => deleteLog(e.target.closest('tr'))));
+    tbody.querySelectorAll('.historyBtn').forEach(btn => btn.addEventListener('click', (e) => toggleHistoryRow(e.target.closest('tr'))));
+  }
+
+  async function toggleHistoryRow(tr){
+    const existing = tr.nextElementSibling;
+    if (existing && existing.classList.contains('history-row')){ existing.remove(); return; }
+    document.querySelectorAll('.history-row').forEach(r => r.remove());
+
+    const id = tr.dataset.id;
+    const detailTr = document.createElement('tr');
+    detailTr.className = 'history-row';
+    detailTr.innerHTML = '<td colspan="9"><div class="history-block">불러오는 중…</div></td>';
+    tr.after(detailTr);
+
+    try{
+      const snap = await db.collection('logs').doc(id).collection('history').orderBy('editedAt','asc').get();
+      if (snap.empty){
+        detailTr.querySelector('.history-block').innerHTML = '수정 이력이 없습니다.';
+        return;
+      }
+      detailTr.querySelector('td').innerHTML = snap.docs.map(d => {
+        const h = d.data();
+        const dt = h.editedAt && h.editedAt.toDate ? h.editedAt.toDate() : null;
+        const dateStr = dt ? (dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0')+' '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0')) : '-';
+        return '<div class="history-block"><b>'+dateStr+' · '+escapeHtml(h.editedBy||'-')+'</b>사유: '+escapeHtml(h.reason||'-')+'</div>';
+      }).join('');
+    }catch(err){
+      detailTr.querySelector('.history-block').innerHTML = '이력을 불러오지 못했습니다: ' + escapeHtml(err.message);
+    }
+  }
+
+  function openEditRow(tr){
+    const id = tr.dataset.id;
+    const log = currentLogs.find(l => l.id === id);
+    if (!log) return;
+    tr.innerHTML =
+      '<td><input type="date" class="edit-input" id="e_useDate" value="'+escapeHtml(log.useDate)+'"></td>'+
+      '<td>'+escapeHtml(log.office)+'</td>'+
+      '<td><input type="text" class="edit-input" id="e_unitNo" value="'+escapeHtml(log.unitNo||'')+'" placeholder="호수" style="margin-bottom:4px;">'+
+          '<input type="text" class="edit-input" id="e_chassisNo" value="'+escapeHtml(log.chassisNo||'')+'" placeholder="차대번호" style="margin-bottom:4px;">'+
+          '<input type="text" class="edit-input" id="e_vehicleModel" value="'+escapeHtml(log.vehicleModel||'')+'" placeholder="차종/모델"></td>'+
+      '<td><input type="text" class="edit-input" id="e_userName" value="'+escapeHtml(log.userName)+'" placeholder="이름">'+
+          '<input type="text" class="edit-input" id="e_position" value="'+escapeHtml(log.position||'')+'" placeholder="직명" style="margin-top:4px;"></td>'+
+      '<td><input type="text" class="edit-input" id="e_department" value="'+escapeHtml(log.department||'')+'"></td>'+
+      '<td><input type="text" class="edit-input" id="e_purpose" value="'+escapeHtml(log.purpose||'')+'"></td>'+
+      '<td><input type="time" class="edit-input" id="e_startTime" value="'+escapeHtml(log.startTime||'')+'" style="margin-bottom:4px;">'+
+          '<input type="time" class="edit-input" id="e_endTime" value="'+escapeHtml(log.endTime||'')+'"></td>'+
+      '<td><textarea class="edit-input" id="e_notes">'+escapeHtml(log.notes||'')+'</textarea></td>'+
+      '<td class="actions-cell no-print">'+
+        '<input type="text" class="edit-input" id="e_reason" placeholder="수정 사유 (필수)" style="margin-bottom:5px;">'+
+        '<button class="btn btn-sm saveBtn">저장</button> '+
+        '<button class="btn btn-outline btn-sm cancelBtn">취소</button></td>';
+    tr.querySelector('.saveBtn').addEventListener('click', () => saveEditRow(id, tr));
+    tr.querySelector('.cancelBtn').addEventListener('click', () => renderLogTable(currentLogs));
+  }
+
+  async function saveEditRow(id, tr){
+    const reason = tr.querySelector('#e_reason').value.trim();
+    if (!reason){ alert('수정 사유를 입력해 주세요.'); return; }
+
+    const before = currentLogs.find(l => l.id === id);
+    const updated = {
+      useDate: tr.querySelector('#e_useDate').value,
+      unitNo: tr.querySelector('#e_unitNo').value.trim(),
+      vehicleModel: tr.querySelector('#e_vehicleModel').value.trim(),
+      chassisNo: tr.querySelector('#e_chassisNo').value.trim(),
+      userName: tr.querySelector('#e_userName').value.trim(),
+      position: tr.querySelector('#e_position').value.trim(),
+      department: tr.querySelector('#e_department').value.trim(),
+      purpose: tr.querySelector('#e_purpose').value.trim(),
+      startTime: tr.querySelector('#e_startTime').value,
+      endTime: tr.querySelector('#e_endTime').value,
+      notes: tr.querySelector('#e_notes').value.trim()
+    };
+
+    try{
+      const fields = ['useDate','unitNo','vehicleModel','chassisNo','userName','position','department','purpose','startTime','endTime','notes'];
+      const beforeSnapshot = {}; fields.forEach(f => beforeSnapshot[f] = before[f] || '');
+
+      const batch = db.batch();
+      const logRef = db.collection('logs').doc(id);
+      batch.update(logRef, {
+        ...updated,
+        editCount: firebase.firestore.FieldValue.increment(1),
+        lastEditedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        lastEditedBy: currentUser.email
+      });
+      const historyRef = logRef.collection('history').doc();
+      batch.set(historyRef, {
+        editedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        editedBy: currentUser.email,
+        reason: reason,
+        before: beforeSnapshot,
+        after: updated
+      });
+      await batch.commit();
+
+      const idx = currentLogs.findIndex(l => l.id === id);
+      if (idx > -1) currentLogs[idx] = { ...currentLogs[idx], ...updated, editCount: (currentLogs[idx].editCount||0) + 1 };
+      renderLogTable(currentLogs);
+    }catch(err){
+      alert('저장 실패: ' + err.message);
+    }
+  }
+
+  async function deleteLog(tr){
+    const id = tr.dataset.id;
+    if (!confirm('이 사용 기록을 삭제할까요? 되돌릴 수 없습니다.')) return;
+    try{
+      await db.collection('logs').doc(id).delete();
+      currentLogs = currentLogs.filter(l => l.id !== id);
+      renderLogTable(currentLogs);
+    }catch(err){
+      alert('삭제 실패: ' + err.message);
+    }
+  }
+
+  // ---- 미리보기 · 인쇄 ----
+  document.getElementById('previewBtn').addEventListener('click', openPreview);
+  document.getElementById('previewCloseBtn').addEventListener('click', () => {
+    document.getElementById('previewOverlay').classList.remove('show');
+  });
+  document.getElementById('previewPrintBtn').addEventListener('click', () => window.print());
+
+  async function openPreview(){
+    const includeEdits = document.getElementById('includeEditsCheckbox').checked;
+    const office = document.getElementById('filterOffice').value || '전체 사무소';
+    const from = document.getElementById('filterFrom').value || '전체기간';
+    const to = document.getElementById('filterTo').value || '';
+
+    const previewBtn = document.getElementById('previewBtn');
+    previewBtn.disabled = true; previewBtn.textContent = '준비 중…';
+
+    let historyMap = {};
+    if (includeEdits){
+      const withEdits = currentLogs.filter(l => l.editCount);
+      for (const log of withEdits){
+        try{
+          const snap = await db.collection('logs').doc(log.id).collection('history').orderBy('editedAt','asc').get();
+          historyMap[log.id] = snap.docs.map(d => d.data());
+        }catch(e){ historyMap[log.id] = []; }
+      }
+    }
+
+    const rowsHtml = currentLogs.map(l => {
+      const timeRange = (l.startTime||l.endTime) ? (l.startTime+(l.endTime?' ~ '+l.endTime:'')) : '-';
+      const unitCell = escapeHtml(l.unitNo) + (l.chassisNo ? '('+escapeHtml(l.chassisNo)+')' : '');
+      let row = '<tr>'+
+        '<td>'+escapeHtml(l.useDate)+'</td><td>'+escapeHtml(l.office)+'</td>'+
+        '<td>'+unitCell+'</td>'+
+        '<td>'+(l.position?escapeHtml(l.position)+' ':'')+escapeHtml(l.userName)+'</td>'+
+        '<td>'+escapeHtml(l.purpose||'-')+'</td><td>'+escapeHtml(timeRange)+'</td>'+
+        '<td>'+escapeHtml(l.notes||'-')+'</td>'+
+      '</tr>';
+      if (includeEdits && historyMap[l.id] && historyMap[l.id].length){
+        const histHtml = historyMap[l.id].map(h => {
+          const dt = h.editedAt && h.editedAt.toDate ? h.editedAt.toDate() : null;
+          const dateStr = dt ? (dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0')+' '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0')) : '-';
+          return '<div>· '+dateStr+' · '+escapeHtml(h.editedBy||'-')+' · 사유: '+escapeHtml(h.reason||'-')+'</div>';
+        }).join('');
+        row += '<tr><td colspan="7"><div class="history-block"><b>수정 이력</b>'+histHtml+'</div></td></tr>';
+      }
+      return row;
+    }).join('');
+
+    document.getElementById('printArea').innerHTML =
+      '<div class="print-title-row">'+
+        '<div><h2>지게차 사용대장'+(includeEdits?' (수정이력 포함)':'')+'</h2>'+
+        '<p class="print-subtitle">'+escapeHtml(office)+' · '+escapeHtml(from)+(to?' ~ '+escapeHtml(to):'')+' · 총 '+currentLogs.length+'건</p></div>'+
+        '<table class="approval-table"><tr>'+
+          '<td class="approval-label">담당</td><td class="approval-label">책임자</td><td class="approval-label">사무소장</td>'+
+        '</tr><tr>'+
+          '<td class="approval-sign"></td><td class="approval-sign"></td><td class="approval-sign"></td>'+
+        '</tr></table>'+
+      '</div>'+
+      '<table class="log-table"><colgroup>'+
+        '<col style="width:9%"><col style="width:13%"><col style="width:19%"><col style="width:12%">'+
+        '<col style="width:9%"><col style="width:11%"><col style="width:27%">'+
+      '</colgroup><thead><tr>'+
+        '<th>사용일자</th><th>사무소</th><th>호수(차대번호)</th><th>사용자</th><th>목적</th><th>시간</th><th>특이사항</th>'+
+      '</tr></thead><tbody>'+rowsHtml+'</tbody></table>';
+
+    previewBtn.disabled = false; previewBtn.textContent = '미리보기·인쇄';
+    document.getElementById('previewOverlay').classList.add('show');
+  }
+
+  // ---- CSV 다운로드 ----
+  document.getElementById('csvBtn').addEventListener('click', () => {
+    if (!currentLogs.length){ alert('다운로드할 데이터가 없습니다.'); return; }
+    const headers = ['사용일자','사무소','호수','차종/모델','차대번호','사용자','직명','소속','목적','시작시간','종료시간','특이사항'];
+    const rows = currentLogs.map(l => [
+      l.useDate, l.office, l.unitNo||'', l.vehicleModel||'', l.chassisNo||'', l.userName, l.position||'', l.department||'',
+      l.purpose||'', l.startTime||'', l.endTime||'', (l.notes||'').replace(/\n/g,' ')
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+    const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = '지게차_사용대장_' + todayISO() + '.csv';
+    a.click(); URL.revokeObjectURL(url);
+  });
+  function todayISO(){
+    const d = new Date();
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+
+  // ---- 사무소 관리 ----
+  document.getElementById('addOfficeBtn').addEventListener('click', async () => {
+    const name = document.getElementById('newOfficeName').value.trim();
+    const msgEl = document.getElementById('officeMsg');
+    if (!name){ showMsg(msgEl, '사무소명을 입력해 주세요.', 'error'); return; }
+    try{
+      await db.collection('offices').doc(name).set({ name, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      document.getElementById('newOfficeName').value = '';
+      showMsg(msgEl, '"' + name + '" 사무소가 추가되었습니다.', 'success');
+      loadOfficeFilter(); loadOfficeManagement();
+    }catch(err){ showMsg(msgEl, '추가 실패: ' + err.message, 'error'); }
+  });
+
+  async function loadOfficeManagement(){
+    const listEl = document.getElementById('officeList');
+    const snap = await db.collection('offices').orderBy('name').get();
+    if (snap.empty){ listEl.innerHTML = '<p class="empty-state">등록된 사무소가 없습니다.</p>'; return; }
+    listEl.innerHTML = snap.docs.map(d => {
+      const name = d.data().name;
+      return '<div class="vehicle-row"><span class="grow">'+escapeHtml(name)+'</span>'+
+        '<button class="btn btn-danger btn-sm" data-office="'+escapeHtml(name)+'">삭제</button></div>';
+    }).join('');
+    listEl.querySelectorAll('button').forEach(btn => btn.addEventListener('click', async () => {
+      const name = btn.dataset.office;
+      if (!confirm('"'+name+'" 사무소를 삭제할까요? (등록된 차량은 별도로 삭제해야 합니다)')) return;
+      await db.collection('offices').doc(name).delete();
+      loadOfficeFilter(); loadOfficeManagement();
+    }));
+  }
+
+  document.getElementById('seedOfficesBtn').addEventListener('click', async () => {
+    const names = ['하나로마트 제주점','하나로마트 노형점','하나로마트 오라점','동부영농지원센터','서부영농지원센터','농산물공판장','농산물산지유통센터'];
+    const msgEl = document.getElementById('officeMsg');
+    if (!confirm('7개 사무소를 일괄 등록할까요? (이미 있는 이름은 덮어씁니다)')) return;
+    try{
+      const batch = db.batch();
+      names.forEach(name => {
+        const ref = db.collection('offices').doc(name);
+        batch.set(ref, { name, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      });
+      await batch.commit();
+      showMsg(msgEl, '7개 사무소가 등록되었습니다.', 'success');
+      loadOfficeFilter(); loadOfficeManagement();
+    }catch(err){ showMsg(msgEl, '등록 실패: ' + err.message, 'error'); }
+  });
+
+  // ---- 사용자 관리 ----
+  async function loadUserManagement(){
+    const tbody = document.getElementById('userTableBody');
+    const officesSnap = await db.collection('offices').orderBy('name').get();
+    const officeNames = officesSnap.docs.map(d => d.data().name);
+
+    let query = db.collection('users');
+    if (myRole === 'office') query = query.where('office', '==', myOfficeScope);
+    const snap = await query.get();
+    document.getElementById('userEmptyState').style.display = snap.empty ? 'block' : 'none';
+    if (snap.empty){ tbody.innerHTML = ''; return; }
+
+    tbody.innerHTML = snap.docs.map(d => {
+      const u = d.data();
+      const officeOptions = officeNames.map(name =>
+        '<option value="'+escapeHtml(name)+'"'+(name===u.office?' selected':'')+'>'+escapeHtml(name)+'</option>'
+      ).join('');
+      // 사무소 관리자는 소속 사무소를 바꿀 수 없음 (사무소 이동은 총괄 관리자만)
+      const officeCell = myRole === 'super'
+        ? '<select class="edit-input u_office">'+officeOptions+'</select>'
+        : '<span>'+escapeHtml(u.office||'-')+'</span>';
+      return '<tr data-uid="'+d.id+'" data-original-office="'+escapeHtml(u.office||'')+'">'+
+        '<td data-label="이메일">'+escapeHtml(u.email||'-')+'</td>'+
+        '<td data-label="이름"><input type="text" class="edit-input u_name" value="'+escapeHtml(u.name||'')+'"></td>'+
+        '<td data-label="직명"><input type="text" class="edit-input u_position" value="'+escapeHtml(u.position||'')+'"></td>'+
+        '<td data-label="사무소">'+officeCell+'</td>'+
+        '<td data-label="소속"><input type="text" class="edit-input u_dept" value="'+escapeHtml(u.department||'')+'"></td>'+
+        '<td data-label="관리" class="actions-cell no-print"><button class="btn btn-sm u_saveBtn">저장</button></td>'+
+      '</tr>';
+    }).join('');
+
+    tbody.querySelectorAll('.u_saveBtn').forEach(btn => btn.addEventListener('click', async (e) => {
+      const tr = e.target.closest('tr');
+      const uid = tr.dataset.uid;
+      const originalOffice = tr.dataset.originalOffice;
+      const name = tr.querySelector('.u_name').value.trim();
+      const position = tr.querySelector('.u_position').value.trim();
+      const officeSel = tr.querySelector('.u_office');
+      const office = officeSel ? officeSel.value : myOfficeScope;
+      const department = tr.querySelector('.u_dept').value.trim();
+      const officeChanged = officeSel && office !== originalOffice;
+
+      if (officeChanged && !confirm('사무소를 변경하면 이 직원이 보유한 관리자 권한이 있을 경우 자동으로 해제되고 사용자로 전환됩니다. 계속할까요?')) return;
+
+      try{
+        await db.collection('users').doc(uid).update({ name, position, office, department });
+        if (officeChanged){
+          try{ await db.collection('admins').doc(uid).delete(); }catch(e){ /* 권한이 없었다면 무시 */ }
+        }
+        btn.textContent = '저장됨'; setTimeout(()=>{ btn.textContent='저장'; loadUserManagement(); }, 800);
+      }catch(err){ alert('저장 실패: ' + err.message); }
+    }));
+  }
+
+  // ---- 차량 관리 ----
+  document.getElementById('addVehicleBtn').addEventListener('click', async () => {
+    const office = document.getElementById('newVehicleOffice').value;
+    const unitNo = document.getElementById('newVehicleUnitNo').value.trim();
+    const chassisNo = document.getElementById('newVehicleChassis').value.trim();
+    const vehicleModel = document.getElementById('newVehicleModel').value.trim();
+    const msgEl = document.getElementById('vehicleMsg');
+    if (!office || !unitNo){ showMsg(msgEl, '사무소와 호수는 필수입니다.', 'error'); return; }
+    try{
+      await db.collection('vehicles').add({ office, unitNo, chassisNo, vehicleModel, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      document.getElementById('newVehicleUnitNo').value = '';
+      document.getElementById('newVehicleChassis').value = '';
+      document.getElementById('newVehicleModel').value = '';
+      showMsg(msgEl, '차량이 추가되었습니다.', 'success');
+      loadVehicleManagement();
+    }catch(err){ showMsg(msgEl, '추가 실패: ' + err.message, 'error'); }
+  });
+
+  async function loadVehicleManagement(){
+    const listEl = document.getElementById('vehicleList');
+    let query = db.collection('vehicles');
+    if (myRole === 'office') query = query.where('office', '==', myOfficeScope);
+    else query = query.orderBy('office');
+    const snap = await query.get();
+    if (snap.empty){ listEl.innerHTML = '<p class="empty-state">등록된 차량이 없습니다.</p>'; return; }
+    listEl.innerHTML = snap.docs.map(d => {
+      const v = d.data();
+      return '<div class="vehicle-row"><span class="badge">'+escapeHtml(v.office)+'</span>'+
+        '<span class="grow">'+escapeHtml(v.unitNo)+(v.vehicleModel?' · '+escapeHtml(v.vehicleModel):'')+
+        (v.chassisNo?' · 차대번호 '+escapeHtml(v.chassisNo):'')+'</span>'+
+        '<button class="btn btn-danger btn-sm" data-id="'+d.id+'">삭제</button></div>';
+    }).join('');
+    listEl.querySelectorAll('button').forEach(btn => btn.addEventListener('click', async () => {
+      if (!confirm('이 차량을 삭제할까요?')) return;
+      await db.collection('vehicles').doc(btn.dataset.id).delete();
+      loadVehicleManagement();
+    }));
+  }
+</script>
+</body>
+</html>

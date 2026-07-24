@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>지게차 사용대장</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F2ED; --surface:#FFFFFF; --ink:#1C1B1A; --ink-soft:#6B675F;
+    --amber:#F5A623; --amber-deep:#B9720A; --line:#E3DFD4;
+    --danger:#C0392B; --success:#2F7D4F; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',sans-serif;-webkit-font-smoothing:antialiased;}
+  .hazard-bar{height:8px;width:100%;background:repeating-linear-gradient(-45deg,var(--amber) 0px,var(--amber) 14px,var(--ink) 14px,var(--ink) 28px);}
+  header{padding:22px 20px 10px;max-width:560px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;}
+  .eyebrow{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.22em;color:var(--amber-deep);text-transform:uppercase;margin:0 0 4px;}
+  h1{margin:0;font-size:26px;font-weight:900;letter-spacing:-.01em;}
+  .user-chip{text-align:right;font-size:12.5px;color:var(--ink-soft);}
+  .user-chip .name{font-weight:700;color:var(--ink);}
+  .link-btn{background:none;border:none;color:var(--amber-deep);font-size:12.5px;font-weight:700;cursor:pointer;padding:0;margin-top:4px;text-decoration:underline;}
+  main{max-width:560px;margin:0 auto;padding:4px 20px 60px;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px 20px;margin-top:16px;box-shadow:0 1px 2px rgba(28,27,26,.04);}
+  .field{margin-bottom:16px;} .field:last-child{margin-bottom:0;}
+  label{display:block;font-size:13px;font-weight:700;margin-bottom:6px;}
+  label .req{color:var(--danger);margin-left:2px;}
+  select,input[type=text],input[type=date],input[type=time],textarea{
+    width:100%;padding:12px;font-size:15px;font-family:inherit;color:var(--ink);
+    background:#FBFAF7;border:1.5px solid var(--line);border-radius:10px;appearance:none;-webkit-appearance:none;
+  }
+  select:focus,input:focus,textarea:focus{outline:none;border-color:var(--amber);background:#fff;}
+  select:disabled{color:var(--ink-soft);background:#F1EFEA;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  textarea{resize:vertical;min-height:64px;}
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:5px;}
+  .btn{width:100%;margin-top:20px;padding:15px;border:none;border-radius:10px;background:var(--ink);color:#fff;
+    font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;}
+  .btn:hover{background:#000;} .btn:disabled{background:var(--ink-soft);cursor:not-allowed;}
+  .btn-outline{background:#fff;color:var(--ink);border:1.5px solid var(--line);}
+  .btn-outline:hover{background:#F5F3EE;}
+  .btn-google{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:var(--ink);
+    border:1.5px solid var(--line);}
+  .btn-google:hover{background:#FAFAF8;}
+  .msg{margin-top:14px;padding:12px 14px;border-radius:10px;font-size:14px;font-weight:500;display:none;}
+  .msg.show{display:block;} .msg.success{background:#EAF5EE;color:var(--success);border:1px solid #BFE3CC;}
+  .msg.error{background:#FBEAE8;color:var(--danger);border:1px solid #F1C4BE;}
+  .divider-stripe{height:5px;width:56px;border-radius:3px;
+    background:repeating-linear-gradient(-45deg,var(--amber) 0px,var(--amber) 6px,var(--ink) 6px,var(--ink) 12px);
+    margin:34px 0 14px;}
+  .section-title{font-size:16px;font-weight:900;margin:0 0 12px;}
+  .log-item{padding:12px 0;border-bottom:1px solid var(--line);font-size:13.5px;} .log-item:last-child{border-bottom:none;}
+  .log-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px;}
+  .log-vehicle{font-weight:700;} .log-time{color:var(--ink-soft);font-family:'Oswald',sans-serif;font-size:12.5px;}
+  .log-meta{color:var(--ink-soft);}
+  .empty-state,.loading-text{color:var(--ink-soft);font-size:13.5px;padding:8px 0;}
+  .center-screen{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;}
+  .center-screen h2{font-size:20px;margin:6px 0 4px;}
+  .center-screen p{color:var(--ink-soft);font-size:14px;margin:0 0 22px;max-width:320px;}
+  .badge-office{display:inline-block;background:#FBF0DA;color:var(--amber-deep);font-weight:700;font-size:12px;
+    padding:3px 10px;border-radius:20px;margin-top:2px;}
+  .screen{display:none;} .screen.active{display:block;}
+  .time-display{
+    width:100%;padding:12px;font-size:15px;font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:.02em;
+    color:var(--ink-soft);background:#FBFAF7;border:1.5px solid var(--line);border-radius:10px;text-align:left;cursor:pointer;
+  }
+  .time-display.filled{ color:var(--ink); }
+  .time-display:active{ border-color:var(--amber); }
+  .time-sheet-overlay{
+    position:fixed;inset:0;background:rgba(28,27,26,.45);display:none;align-items:flex-end;justify-content:center;z-index:1000;
+  }
+  .time-sheet-overlay.show{display:flex;}
+  .time-sheet{background:#fff;width:100%;max-width:420px;border-radius:20px 20px 0 0;padding:20px 20px 24px;
+    box-shadow:0 -4px 24px rgba(0,0,0,.15);}
+  .time-sheet-title{text-align:center;font-weight:900;font-size:15px;margin:0 0 4px;}
+  .time-sheet-sub{text-align:center;font-size:12px;color:var(--ink-soft);margin:0 0 14px;}
+  .wheel-wrap{display:flex;justify-content:center;align-items:center;gap:6px;height:180px;position:relative;}
+  .wheel-highlight{position:absolute;top:50%;left:14px;right:14px;height:38px;margin-top:-19px;
+    background:#FBF0DA;border-radius:9px;z-index:0;pointer-events:none;}
+  .wheel-col{width:64px;height:180px;overflow-y:scroll;scroll-snap-type:y mandatory;position:relative;z-index:1;
+    -ms-overflow-style:none;scrollbar-width:none;}
+  .wheel-col::-webkit-scrollbar{display:none;}
+  .wheel-pad{height:71px;}
+  .wheel-item{height:38px;display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;
+    font-size:19px;font-weight:600;color:var(--ink-soft);scroll-snap-align:center;}
+  .wheel-item.active{color:var(--ink);font-weight:700;}
+  .wheel-sep{font-weight:900;font-size:18px;z-index:1;color:var(--ink-soft);}
+  .time-sheet-actions{display:flex;gap:10px;margin-top:18px;}
+  .time-sheet-actions .btn{margin-top:0;flex:1;}
+  .time-sheet-clear{background:none;border:none;color:var(--ink-soft);font-size:12.5px;text-decoration:underline;
+    display:block;margin:10px auto 0;cursor:pointer;font-family:inherit;}
+</style>
+</head>
+<body>
+
+<div class="hazard-bar"></div>
+
+<!-- ===== 로그인 화면 ===== -->
+<div id="loginScreen" class="screen active">
+  <div class="center-screen">
+    <p class="eyebrow">FORKLIFT USAGE LOG</p>
+    <h2>지게차 사용대장</h2>
+    <p>구글 계정으로 로그인하면 사무소·이름을 매번 입력하지 않아도 됩니다.</p>
+    <button class="btn btn-google" id="googleLoginBtn" style="max-width:280px;">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.9 32.6 29.4 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.4 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.4 6.1 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.3 0 10.1-2 13.7-5.4l-6.3-5.3C29.4 35 26.8 36 24 36c-5.3 0-9.8-3.4-11.3-8.1l-6.5 5C9.6 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.7 2.1-2 3.9-3.7 5.3l6.3 5.3C41.4 35.9 44 30.4 44 24c0-1.3-.1-2.7-.4-3.5z"/></svg>
+      Google 계정으로 로그인
+    </button>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- ===== 최초 1회 프로필 설정 화면 ===== -->
+<div id="setupScreen" class="screen">
+  <header><div><p class="eyebrow">최초 1회 설정</p><h1>내 정보 등록</h1></div></header>
+  <main>
+    <div class="card">
+      <p class="hint" style="margin-bottom:16px;">아래 정보는 다음 로그인부터 자동으로 채워집니다.</p>
+      <div class="field">
+        <label>사무소<span class="req">*</span></label>
+        <select id="setupOffice" required><option value="">사무소를 선택하세요</option></select>
+      </div>
+      <div class="field">
+        <label>직명</label>
+        <input type="text" id="setupPosition" placeholder="예: 과장, 주임, 사원">
+      </div>
+      <div class="field">
+        <label>이름<span class="req">*</span></label>
+        <input type="text" id="setupName" placeholder="홍길동" required>
+      </div>
+      <div class="field">
+        <label>소속/부서</label>
+        <input type="text" id="setupDept" placeholder="예: 유통사업소">
+      </div>
+      <button class="btn" id="setupSaveBtn">저장하고 시작하기</button>
+      <div class="msg" id="setupMsg"></div>
+    </div>
+  </main>
+</div>
+
+<!-- ===== 메인 화면 (기록 입력) ===== -->
+<div id="mainScreen" class="screen">
+  <header>
+    <div>
+      <p class="eyebrow">FORKLIFT USAGE LOG</p>
+      <h1>지게차 사용대장</h1>
+    </div>
+    <div class="user-chip">
+      <div class="name" id="chipName">-</div>
+      <div class="badge-office" id="chipOffice">-</div><br>
+      <button class="link-btn" id="editProfileBtn">정보 수정</button><br>
+      <button class="link-btn" id="adminLinkBtn" style="display:none;">관리자 페이지 →</button><br>
+      <button class="link-btn" id="logoutBtn">로그아웃</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+      <form id="logForm">
+        <div class="field">
+          <label>차량<span class="req">*</span></label>
+          <select id="vehicle" required><option value="">불러오는 중…</option></select>
+        </div>
+        <div class="field">
+          <label>사용일자<span class="req">*</span></label>
+          <input type="date" id="useDate" required>
+        </div>
+        <div class="field">
+          <label>사용목적</label>
+          <select id="purpose">
+            <option value="">선택 안함</option>
+            <option value="상차">상차</option>
+            <option value="하차">하차</option>
+            <option value="자재 운반">자재 운반</option>
+            <option value="적재/보관">적재/보관</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>시작 시간</label>
+            <input type="hidden" id="startTime" value="">
+            <button type="button" class="time-display" id="startTimeDisplay">-- : --</button>
+          </div>
+          <div class="field">
+            <label>종료 시간</label>
+            <input type="hidden" id="endTime" value="">
+            <button type="button" class="time-display" id="endTimeDisplay">-- : --</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>특이사항</label>
+          <textarea id="notes" placeholder="이상 유무, 사고, 정비 필요 사항 등"></textarea>
+        </div>
+        <button type="submit" class="btn" id="submitBtn">사용 기록 등록</button>
+        <div class="msg" id="logMsg"></div>
+      </form>
+    </div>
+
+    <div class="divider-stripe"></div>
+    <p class="section-title">최근 사용내역 (우리 사무소)</p>
+    <div class="card" id="logListCard"><p class="loading-text">불러오는 중…</p></div>
+  </main>
+</div>
+
+<!-- ===== 시간 선택 바텀시트 (시작/종료 시간 공용) ===== -->
+<div class="time-sheet-overlay" id="timeSheetOverlay">
+  <div class="time-sheet">
+    <p class="time-sheet-title" id="timeSheetTitle">시간 선택</p>
+    <p class="time-sheet-sub">스크롤해서 시간을 선택하세요</p>
+    <div class="wheel-wrap">
+      <div class="wheel-highlight"></div>
+      <div class="wheel-col" id="hourWheel"></div>
+      <div class="wheel-sep">:</div>
+      <div class="wheel-col" id="minuteWheel"></div>
+    </div>
+    <div class="time-sheet-actions">
+      <button type="button" class="btn btn-outline" id="timeSheetCancel">취소</button>
+      <button type="button" class="btn" id="timeSheetConfirm">확인</button>
+    </div>
+    <button type="button" class="time-sheet-clear" id="timeSheetClear">선택 안 함으로 비우기</button>
+  </div>
+</div>
+
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+  // ====== 여기에 본인의 Firebase 프로젝트 설정값을 붙여넣으세요 ======
+  const firebaseConfig = {
+    apiKey: "AIzaSyBA89-plyLxHqint_g70sTSCqPFQPhNtl0",
+    authDomain: "forklift-manager-d1d5b.firebaseapp.com",
+    projectId: "forklift-manager-d1d5b",
+    storageBucket: "forklift-manager-d1d5b.firebasestorage.app",
+    messagingSenderId: "921670187536",
+    appId: "1:921670187536:web:be44fe36220c34be442895"
+  };
+  // ================================================================
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  let currentUser = null;
+  let profile = null; // { name, office, department }
+
+  function showScreen(id){
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+  function escapeHtml(str){
+    if (str === undefined || str === null) return '';
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function showMsg(el, text, type){ el.textContent = text; el.className = 'msg show ' + type; }
+  function todayISO(){
+    const d = new Date();
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+
+  // ---- 시간 선택 (스크롤 휠 방식, 모바일 친화적) ----
+  const hourWheel = document.getElementById('hourWheel');
+  const minuteWheel = document.getElementById('minuteWheel');
+  let activeTimeFieldId = null;
+
+  function buildWheel(container, count){
+    container.innerHTML = '<div class="wheel-pad"></div>';
+    for (let i=0;i<count;i++){
+      const item = document.createElement('div');
+      item.className = 'wheel-item';
+      item.textContent = String(i).padStart(2,'0');
+      container.appendChild(item);
+    }
+    container.insertAdjacentHTML('beforeend', '<div class="wheel-pad"></div>');
+  }
+  buildWheel(hourWheel, 24);
+  buildWheel(minuteWheel, 60);
+
+  function scrollWheelTo(container, index, smooth){
+    const item = container.children[index+1];
+    if (!item) return;
+    const target = item.offsetTop - (container.clientHeight/2 - item.clientHeight/2);
+    if (smooth) container.scrollTo({ top: target, behavior: 'auto' });
+    else container.scrollTop = target;
+  }
+  function getCenterIndex(container){
+    const center = container.scrollTop + container.clientHeight/2;
+    let closest = 0, closestDist = Infinity;
+    for (let i=1;i<container.children.length-1;i++){
+      const item = container.children[i];
+      const itemCenter = item.offsetTop + item.clientHeight/2;
+      const dist = Math.abs(itemCenter - center);
+      if (dist < closestDist){ closestDist = dist; closest = i-1; }
+    }
+    return closest;
+  }
+  function highlightCenter(container){
+    const idx = getCenterIndex(container);
+    Array.from(container.children).forEach(c => c.classList && c.classList.remove('active'));
+    const el = container.children[idx+1];
+    if (el) el.classList.add('active');
+    return idx;
+  }
+  [hourWheel, minuteWheel].forEach(w => {
+    let t = null;
+    w.addEventListener('scroll', () => {
+      clearTimeout(t);
+      t = setTimeout(() => highlightCenter(w), 60);
+    });
+  });
+
+  function setTimeDisplay(fieldId, value){
+    const display = document.getElementById(fieldId + 'Display');
+    document.getElementById(fieldId).value = value;
+    if (value){ display.textContent = value; display.classList.add('filled'); }
+    else { display.textContent = '-- : --'; display.classList.remove('filled'); }
+  }
+
+  function openTimeSheet(fieldId, title){
+    activeTimeFieldId = fieldId;
+    document.getElementById('timeSheetTitle').textContent = title;
+    const current = document.getElementById(fieldId).value;
+    const now = new Date();
+    const [h, m] = current ? current.split(':').map(Number) : [now.getHours(), now.getMinutes()];
+    document.getElementById('timeSheetOverlay').classList.add('show');
+    requestAnimationFrame(() => {
+      scrollWheelTo(hourWheel, h);
+      scrollWheelTo(minuteWheel, m);
+      highlightCenter(hourWheel);
+      highlightCenter(minuteWheel);
+    });
+  }
+  function closeTimeSheet(){ document.getElementById('timeSheetOverlay').classList.remove('show'); }
+
+  document.getElementById('startTimeDisplay').addEventListener('click', () => openTimeSheet('startTime', '시작 시간 선택'));
+  document.getElementById('endTimeDisplay').addEventListener('click', () => openTimeSheet('endTime', '종료 시간 선택'));
+  document.getElementById('timeSheetCancel').addEventListener('click', closeTimeSheet);
+  document.getElementById('timeSheetOverlay').addEventListener('click', (e) => { if (e.target.id === 'timeSheetOverlay') closeTimeSheet(); });
+  document.getElementById('timeSheetClear').addEventListener('click', () => {
+    if (activeTimeFieldId) setTimeDisplay(activeTimeFieldId, '');
+    closeTimeSheet();
+  });
+  document.getElementById('timeSheetConfirm').addEventListener('click', () => {
+    const h = getCenterIndex(hourWheel);
+    const m = getCenterIndex(minuteWheel);
+    const val = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+    if (activeTimeFieldId) setTimeDisplay(activeTimeFieldId, val);
+    closeTimeSheet();
+  });
+
+  // ---- 로그인 ----
+  document.getElementById('googleLoginBtn').addEventListener('click', () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(err => {
+      showMsg(document.getElementById('loginMsg'), '로그인 실패: ' + err.message, 'error');
+    });
+  });
+  document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
+
+  // ---- 인증 상태 감지 ----
+  auth.onAuthStateChanged(async (user) => {
+    if (!user){ currentUser = null; profile = null; showScreen('loginScreen'); return; }
+    currentUser = user;
+    const doc = await db.collection('users').doc(user.uid).get();
+    if (!doc.exists){
+      await loadOfficesInto('setupOffice');
+      document.getElementById('setupName').value = user.displayName || '';
+      showScreen('setupScreen');
+    } else {
+      profile = doc.data();
+      document.getElementById('chipName').textContent = profile.name + (profile.position ? ' · ' + profile.position : '');
+      document.getElementById('chipOffice').textContent = profile.office;
+      showScreen('mainScreen');
+      initMain();
+      checkAdmin();
+    }
+  });
+
+  document.getElementById('editProfileBtn').addEventListener('click', async () => {
+    await loadOfficesInto('setupOffice');
+    document.getElementById('setupOffice').value = profile.office || '';
+    document.getElementById('setupPosition').value = profile.position || '';
+    document.getElementById('setupName').value = profile.name || '';
+    document.getElementById('setupDept').value = profile.department || '';
+    showScreen('setupScreen');
+  });
+
+  async function loadOfficesInto(selectId){
+    const sel = document.getElementById(selectId);
+    sel.innerHTML = '<option value="">사무소를 선택하세요</option>';
+    const snap = await db.collection('offices').orderBy('name').get();
+    if (snap.empty){
+      sel.innerHTML = '<option value="">등록된 사무소가 없습니다 (관리자에게 문의)</option>';
+      return;
+    }
+    snap.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.data().name; opt.textContent = d.data().name;
+      sel.appendChild(opt);
+    });
+  }
+
+  let myAdminRole = null;
+
+  document.getElementById('setupSaveBtn').addEventListener('click', async () => {
+    const office = document.getElementById('setupOffice').value;
+    const position = document.getElementById('setupPosition').value.trim();
+    const name = document.getElementById('setupName').value.trim();
+    const department = document.getElementById('setupDept').value.trim();
+    const msgEl = document.getElementById('setupMsg');
+    if (!office || !name){ showMsg(msgEl, '사무소와 이름을 입력해 주세요.', 'error'); return; }
+
+    const previousOffice = profile ? profile.office : null;
+    const officeChanged = previousOffice && office !== previousOffice;
+
+    if (officeChanged && myAdminRole){
+      const roleLabel = myAdminRole === 'super' ? '총괄 관리자' : '사무소 관리자';
+      const ok = confirm('사무소를 변경하면 현재 보유 중인 "' + roleLabel + '" 권한이 자동으로 해제되고 일반 사용자로 전환됩니다. 계속할까요?');
+      if (!ok) return;
+    }
+
+    try{
+      await db.collection('users').doc(currentUser.uid).set({
+        name, office, position, department, email: currentUser.email,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      if (officeChanged){
+        try{ await db.collection('admins').doc(currentUser.uid).delete(); }catch(e){ /* 관리자 권한이 없었다면 무시 */ }
+        myAdminRole = null;
+        document.getElementById('adminLinkBtn').style.display = 'none';
+      }
+
+      profile = { name, office, position, department };
+      document.getElementById('chipName').textContent = name + (position ? ' · ' + position : '');
+      document.getElementById('chipOffice').textContent = office;
+      showScreen('mainScreen');
+      initMain();
+      checkAdmin();
+    }catch(err){
+      showMsg(msgEl, '저장 실패: ' + err.message, 'error');
+    }
+  });
+
+  async function checkAdmin(){
+    try{
+      const doc = await db.collection('admins').doc(currentUser.uid).get();
+      myAdminRole = doc.exists ? doc.data().role : null;
+      document.getElementById('adminLinkBtn').style.display = doc.exists ? 'inline' : 'none';
+    }catch(e){ /* 무시 */ }
+  }
+  document.getElementById('adminLinkBtn').addEventListener('click', () => { window.location.href = 'admin.html'; });
+
+  // ---- 메인 화면 ----
+  function initMain(){
+    document.getElementById('useDate').value = todayISO();
+    loadVehicles();
+    loadRecentLogs();
+  }
+
+  async function loadVehicles(){
+    const sel = document.getElementById('vehicle');
+    sel.innerHTML = '<option value="">불러오는 중…</option>';
+    const snap = await db.collection('vehicles').where('office', '==', profile.office).get();
+    if (snap.empty){
+      sel.innerHTML = '<option value="">등록된 차량이 없습니다 (관리자에게 문의)</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">차량을 선택하세요</option>';
+    const docs = snap.docs.slice().sort((a,b) => (a.data().unitNo||'').localeCompare(b.data().unitNo||'', 'ko'));
+    docs.forEach(d => {
+      const v = d.data();
+      const opt = document.createElement('option');
+      const label = v.unitNo + (v.vehicleModel ? ' · ' + v.vehicleModel : '');
+      opt.value = d.id;
+      opt.dataset.unitNo = v.unitNo || '';
+      opt.dataset.vehicleModel = v.vehicleModel || '';
+      opt.dataset.chassisNo = v.chassisNo || '';
+      opt.textContent = label;
+      sel.appendChild(opt);
+    });
+  }
+
+  async function loadRecentLogs(){
+    const card = document.getElementById('logListCard');
+    card.innerHTML = '<p class="loading-text">불러오는 중…</p>';
+    try{
+      const snap = await db.collection('logs')
+        .where('office', '==', profile.office)
+        .orderBy('createdAt', 'desc')
+        .limit(10)
+        .get();
+      if (snap.empty){ card.innerHTML = '<p class="empty-state">아직 사용 기록이 없습니다.</p>'; return; }
+      card.innerHTML = snap.docs.map(d => {
+        const l = d.data();
+        const ts = l.createdAt && l.createdAt.toDate ? l.createdAt.toDate() : new Date();
+        const registeredAt = String(ts.getMonth()+1).padStart(2,'0')+'/'+String(ts.getDate()).padStart(2,'0')+' '+String(ts.getHours()).padStart(2,'0')+':'+String(ts.getMinutes()).padStart(2,'0');
+        const timeRange = (l.startTime || l.endTime) ? (l.startTime + (l.endTime ? ' ~ ' + l.endTime : '')) : '';
+        return '<div class="log-item">'+
+          '<div class="log-top"><span class="log-vehicle">'+escapeHtml(l.unitNo)+(l.vehicleModel?' · '+escapeHtml(l.vehicleModel):'')+'</span>'+
+          '<span class="log-time">'+registeredAt+'</span></div>'+
+          '<div class="log-meta">'+escapeHtml(l.userName)+(l.position?' · '+escapeHtml(l.position):'')+(l.department?' · '+escapeHtml(l.department):'')+(l.purpose?' · '+escapeHtml(l.purpose):'')+(timeRange?' · '+escapeHtml(timeRange):'')+'</div>'+
+          (l.notes ? '<div class="log-meta">📝 '+escapeHtml(l.notes)+'</div>' : '')+
+        '</div>';
+      }).join('');
+    }catch(err){
+      card.innerHTML = '<p class="empty-state">최근 내역을 불러오지 못했습니다.</p>';
+    }
+  }
+
+  document.getElementById('logForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msgEl = document.getElementById('logMsg');
+    msgEl.className = 'msg';
+    const vehicleSel = document.getElementById('vehicle');
+    const vehicleOpt = vehicleSel.options[vehicleSel.selectedIndex];
+    const useDate = document.getElementById('useDate').value;
+
+    if (!vehicleSel.value || !useDate){
+      showMsg(msgEl, '차량과 사용일자는 필수입니다.', 'error');
+      return;
+    }
+
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true; submitBtn.textContent = '등록 중…';
+
+    try{
+      await db.collection('logs').add({
+        uid: currentUser.uid,
+        userName: profile.name,
+        position: profile.position || '',
+        office: profile.office,
+        department: profile.department || '',
+        unitNo: vehicleOpt.dataset.unitNo || '',
+        vehicleModel: vehicleOpt.dataset.vehicleModel || '',
+        chassisNo: vehicleOpt.dataset.chassisNo || '',
+        useDate: useDate,
+        purpose: document.getElementById('purpose').value,
+        startTime: document.getElementById('startTime').value,
+        endTime: document.getElementById('endTime').value,
+        notes: document.getElementById('notes').value.trim(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      showMsg(msgEl, '사용 기록이 등록되었습니다.', 'success');
+      document.getElementById('purpose').value = '';
+      setTimeDisplay('startTime', '');
+      setTimeDisplay('endTime', '');
+      document.getElementById('notes').value = '';
+      vehicleSel.value = '';
+      loadRecentLogs();
+    }catch(err){
+      showMsg(msgEl, '등록 실패: ' + err.message, 'error');
+    }finally{
+      submitBtn.disabled = false; submitBtn.textContent = '사용 기록 등록';
+    }
+  });
+</script>
+</body>
+</html>

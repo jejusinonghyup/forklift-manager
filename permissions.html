@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>지게차 사용대장 - 권한 설정</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F2ED; --surface:#FFFFFF; --ink:#1C1B1A; --ink-soft:#6B675F;
+    --amber:#F5A623; --amber-deep:#B9720A; --line:#E3DFD4;
+    --danger:#C0392B; --success:#2F7D4F; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans KR',sans-serif;}
+  .hazard-bar{height:8px;width:100%;background:repeating-linear-gradient(-45deg,var(--amber) 0px,var(--amber) 14px,var(--ink) 14px,var(--ink) 28px);}
+  header{padding:22px 24px 8px;max-width:1020px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+  .eyebrow{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.22em;color:var(--amber-deep);text-transform:uppercase;margin:0 0 4px;}
+  h1{margin:0;font-size:24px;font-weight:900;}
+  .top-actions a, .top-actions button{font-size:12.5px;font-weight:700;color:var(--amber-deep);background:none;border:none;cursor:pointer;text-decoration:underline;margin-left:14px;}
+  main{max-width:1020px;margin:0 auto;padding:6px 24px 60px;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:0 1px 2px rgba(28,27,26,.04);}
+  .subsection-title{font-size:15px;font-weight:900;margin:0 0 4px;}
+  .hint{font-size:12.5px;color:var(--ink-soft);margin:0 0 14px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px;}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  th{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);font-weight:700;}
+  select,input[type=text]{
+    padding:8px 9px;font-size:13px;font-family:inherit;color:var(--ink);
+    background:#FBFAF7;border:1.5px solid var(--line);border-radius:8px;
+  }
+  .btn{padding:8px 14px;border:none;border-radius:8px;background:var(--ink);color:#fff;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit;}
+  .btn:hover{background:#000;}
+  .btn-outline{background:#fff;color:var(--ink);border:1.5px solid var(--line);}
+  .btn-danger{background:var(--danger);}
+  .badge{display:inline-block;font-weight:700;font-size:11px;padding:3px 10px;border-radius:20px;}
+  .badge-super{background:#FBF0DA;color:var(--amber-deep);}
+  .badge-office{background:#E7F1EC;color:var(--success);}
+  .badge-none{background:#F1EFEA;color:var(--ink-soft);}
+  .office-select{display:none;margin-top:5px;}
+  .office-select.show{display:inline-block;}
+  .empty-state{color:var(--ink-soft);font-size:13.5px;padding:16px 0;text-align:center;}
+  .center-screen{min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;}
+  .screen{display:none;} .screen.active{display:block;}
+  .tabs{display:flex;gap:6px;margin:14px 0 16px;flex-wrap:wrap;}
+  .tab-btn{padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);background:#fff;font-family:inherit;
+    font-size:12.5px;font-weight:700;cursor:pointer;color:var(--ink-soft);}
+  .tab-btn.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .tab-count{font-size:10.5px;opacity:.75;margin-left:2px;}
+  @media (max-width: 760px){
+    table, thead, tbody, th, td, tr{display:block;}
+    thead{display:none;}
+    tr{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;padding:8px;}
+    td{border:none;padding:5px 2px;}
+    td::before{content:attr(data-label);font-size:11px;font-weight:700;color:var(--ink-soft);display:block;}
+  }
+</style>
+</head>
+<body>
+
+<div class="hazard-bar"></div>
+
+<div id="checkingScreen" class="screen active"><div class="center-screen"><p>권한 확인 중…</p></div></div>
+
+<div id="deniedScreen" class="screen">
+  <div class="center-screen">
+    <h2>접근 권한이 없습니다</h2>
+    <p style="color:var(--ink-soft);">권한 설정은 총괄 관리자만 사용할 수 있습니다.</p>
+    <a href="admin.html" class="btn" style="text-decoration:none;display:inline-block;">관리자 화면으로 이동</a>
+  </div>
+</div>
+
+<div id="permScreen" class="screen">
+  <header>
+    <div><p class="eyebrow">PERMISSIONS</p><h1>권한 설정</h1></div>
+    <div class="top-actions">
+      <a href="admin.html">관리자 화면 →</a>
+      <button id="logoutBtn">로그아웃</button>
+    </div>
+  </header>
+
+  <main>
+    <p class="hint" style="margin:6px 0 0;">
+      <b>총괄 관리자</b>는 전체 사무소, <b>사무소 관리자</b>는 지정한 사무소만 볼 수 있습니다. 직원이 최초 1회 로그인하여 사무소를 설정해야 목록에 나타납니다.
+    </p>
+    <div class="tabs" id="permTabs"></div>
+
+    <div class="card">
+      <p class="subsection-title" id="tabTitle">총괄 관리자</p>
+      <table>
+        <thead><tr><th>이메일</th><th>이름</th><th>소속 사무소</th><th>현재 권한</th><th>권한 변경</th><th>저장</th></tr></thead>
+        <tbody id="permTableBody"></tbody>
+      </table>
+      <p class="empty-state" id="permEmptyState" style="display:none;"></p>
+    </div>
+  </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+  // ====== index.html / admin.html과 동일한 Firebase 설정값을 붙여넣으세요 ======
+  const firebaseConfig = {
+    apiKey: "AIzaSyBA89-plyLxHqint_g70sTSCqPFQPhNtl0",
+    authDomain: "forklift-manager-d1d5b.firebaseapp.com",
+    projectId: "forklift-manager-d1d5b",
+    storageBucket: "forklift-manager-d1d5b.firebasestorage.app",
+    messagingSenderId: "921670187536",
+    appId: "1:921670187536:web:be44fe36220c34be442895"
+  };
+  // ================================================================
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  let currentUser = null;
+  let officeNames = [];
+  let adminsMap = {};   // uid -> {role, office?}
+  let usersMap = {};    // uid -> {name, office, position, department, email}
+  let activeTab = '__super__';
+
+  function showScreen(id){
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+  function escapeHtml(str){
+    if (str === undefined || str === null) return '';
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  auth.onAuthStateChanged(async (user) => {
+    if (!user){ window.location.href = 'index.html'; return; }
+    currentUser = user;
+    const adminDoc = await db.collection('admins').doc(user.uid).get();
+    if (!adminDoc.exists || adminDoc.data().role !== 'super'){ showScreen('deniedScreen'); return; }
+    showScreen('permScreen');
+    loadPermissions();
+  });
+  document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut().then(()=>window.location.href='index.html'));
+
+  function roleBadge(role){
+    if (role === 'super') return '<span class="badge badge-super">총괄 관리자</span>';
+    if (role === 'office') return '<span class="badge badge-office">사무소 관리자</span>';
+    return '<span class="badge badge-none">사용자</span>';
+  }
+
+  async function loadPermissions(){
+    const officesSnap = await db.collection('offices').orderBy('name').get();
+    officeNames = officesSnap.docs.map(d => d.data().name);
+
+    const adminsSnap = await db.collection('admins').get();
+    adminsMap = {};
+    adminsSnap.forEach(d => adminsMap[d.id] = d.data());
+
+    const usersSnap = await db.collection('users').get();
+    usersMap = {};
+    usersSnap.forEach(d => usersMap[d.id] = d.data());
+
+    renderTabs();
+    renderActiveTab();
+  }
+
+  function renderTabs(){
+    const tabsEl = document.getElementById('permTabs');
+    const superCount = Object.values(adminsMap).filter(a => a.role === 'super').length;
+    let html = '<button class="tab-btn' + (activeTab==='__super__'?' active':'') + '" data-tab="__super__">'+
+      '총괄 관리자 <span class="tab-count">(' + superCount + ')</span></button>';
+    officeNames.forEach(name => {
+      const count = Object.values(usersMap).filter(u => u.office === name).length;
+      html += '<button class="tab-btn'+(activeTab===name?' active':'')+'" data-tab="'+escapeHtml(name)+'">'+
+        escapeHtml(name) + ' <span class="tab-count">(' + count + ')</span></button>';
+    });
+    tabsEl.innerHTML = html;
+    tabsEl.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeTab = btn.dataset.tab;
+        renderTabs();
+        renderActiveTab();
+      });
+    });
+  }
+
+  function renderActiveTab(){
+    if (activeTab === '__super__'){
+      document.getElementById('tabTitle').textContent = '총괄 관리자';
+      renderUserRows(Object.keys(usersMap).filter(uid => adminsMap[uid] && adminsMap[uid].role === 'super'));
+      document.getElementById('permEmptyState').textContent = '현재 총괄 관리자로 지정된 직원이 없습니다.';
+    } else {
+      document.getElementById('tabTitle').textContent = activeTab;
+      renderUserRows(Object.keys(usersMap).filter(uid => usersMap[uid].office === activeTab));
+      document.getElementById('permEmptyState').textContent = '이 사무소에 로그인한 직원이 없습니다.';
+    }
+  }
+
+  function renderUserRows(uids){
+    const tbody = document.getElementById('permTableBody');
+    document.getElementById('permEmptyState').style.display = uids.length ? 'none' : 'block';
+    tbody.innerHTML = uids.map(uid => {
+      const u = usersMap[uid];
+      const admin = adminsMap[uid];
+      const currentRole = admin ? admin.role : 'none';
+
+      return '<tr data-uid="'+uid+'">'+
+        '<td data-label="이메일">'+escapeHtml(u.email||'-')+'</td>'+
+        '<td data-label="이름">'+escapeHtml(u.name||'-')+(u.position?' · '+escapeHtml(u.position):'')+'</td>'+
+        '<td data-label="소속 사무소">'+escapeHtml(u.office||'-')+'</td>'+
+        '<td data-label="현재 권한" class="currentRoleCell">'+roleBadge(currentRole)+'</td>'+
+        '<td data-label="권한 변경">'+
+          '<select class="roleSelect">'+
+            '<option value="none"'+(currentRole==='none'?' selected':'')+'>사용자</option>'+
+            '<option value="office"'+(currentRole==='office'?' selected':'')+'>사무소 관리자</option>'+
+            '<option value="super"'+(currentRole==='super'?' selected':'')+'>총괄 관리자</option>'+
+          '</select>'+
+        '</td>'+
+        '<td data-label="저장"><button class="btn saveBtn">저장</button></td>'+
+      '</tr>';
+    }).join('');
+
+    tbody.querySelectorAll('.saveBtn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const tr = e.target.closest('tr');
+        const uid = tr.dataset.uid;
+        const role = tr.querySelector('.roleSelect').value;
+        const office = usersMap[uid].office; // 사무소 관리자 범위는 항상 본인 소속 사무소
+
+        if (uid === currentUser.uid && role !== 'super'){
+          if (!confirm('본인의 총괄 관리자 권한을 회수하면 즉시 이 페이지에 대한 접근 권한을 잃습니다. 계속할까요?')) return;
+        }
+
+        try{
+          if (role === 'none'){
+            await db.collection('admins').doc(uid).delete();
+          } else if (role === 'super'){
+            await db.collection('admins').doc(uid).set({
+              role: 'super', grantedAt: firebase.firestore.FieldValue.serverTimestamp(), grantedBy: currentUser.email
+            });
+          } else {
+            await db.collection('admins').doc(uid).set({
+              role: 'office', office: office, grantedAt: firebase.firestore.FieldValue.serverTimestamp(), grantedBy: currentUser.email
+            });
+          }
+          btn.textContent = '저장됨';
+          setTimeout(() => loadPermissions(), 700);
+        }catch(err){
+          alert('저장 실패: ' + err.message);
+        }
+      });
+    });
+  }
+</script>
+</body>
+</html>
