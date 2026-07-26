@@ -61,11 +61,16 @@
   .center-screen{min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;}
   .screen{display:none;} .screen.active{display:block;}
   @media (max-width: 720px){
-    table, thead, tbody, th, td, tr{display:block;}
-    thead{display:none;}
-    tr{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;padding:8px;}
-    td{border:none;padding:4px 2px;}
-    td::before{content:attr(data-label);font-size:11px;font-weight:700;color:var(--ink-soft);display:block;}
+    table:not(.approval-table):not(.log-table),
+    table:not(.approval-table):not(.log-table) thead,
+    table:not(.approval-table):not(.log-table) tbody,
+    table:not(.approval-table):not(.log-table) th,
+    table:not(.approval-table):not(.log-table) td,
+    table:not(.approval-table):not(.log-table) tr{display:block;}
+    table:not(.approval-table):not(.log-table) thead{display:none;}
+    table:not(.approval-table):not(.log-table) tr{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;padding:8px;}
+    table:not(.approval-table):not(.log-table) td{border:none;padding:4px 2px;}
+    table:not(.approval-table):not(.log-table) td::before{content:attr(data-label);font-size:11px;font-weight:700;color:var(--ink-soft);display:block;}
   }
   @media (max-width: 640px){
     header{padding:16px 16px 6px;}
@@ -107,7 +112,7 @@
     .print-title-row{flex-direction:column;align-items:flex-start;}
     .approval-table{margin-left:0;margin-top:10px;}
   }
-  .preview-page table.log-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:14px;table-layout:fixed;}
+  .preview-page table.log-table{width:100%;min-width:640px;border-collapse:collapse;font-size:12px;margin-top:14px;table-layout:fixed;}
   .preview-page table.log-table th,.preview-page table.log-table td{border:1px solid #bbb;padding:6px 7px;text-align:left;vertical-align:top;word-break:break-word;}
   .preview-page table.log-table th{background:#F5F3EE;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;}
   .history-block{margin:2px 0;padding:8px 10px;background:#FBF6E8;border:1px dashed #D8C58F;border-radius:6px;font-size:11px;color:#6B5B2A;}
