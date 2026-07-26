@@ -103,7 +103,8 @@
   .preview-toolbar{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;
     background:#F5F3EE;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:1;}
   .preview-toolbar-title{font-weight:800;font-size:14px;}
-  .preview-page{padding:26px 30px;overflow-x:auto;}
+  .preview-page{padding:26px 30px;}
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   @media (max-width: 640px){
     .preview-overlay{padding:0;}
     .preview-modal{max-width:100%;border-radius:0;min-height:100vh;}
@@ -620,12 +621,12 @@
           '<td class="approval-sign"></td><td class="approval-sign"></td><td class="approval-sign"></td>'+
         '</tr></table>'+
       '</div>'+
-      '<table class="log-table"><colgroup>'+
+      '<div class="table-scroll"><table class="log-table"><colgroup>'+
         '<col style="width:11%"><col style="width:15%"><col style="width:21%">'+
         '<col style="width:14%"><col style="width:13%"><col style="width:26%">'+
       '</colgroup><thead><tr>'+
         '<th>사용일자</th><th>사무소</th><th>호수(차대번호)</th><th>사용자</th><th>시간</th><th>특이사항</th>'+
-      '</tr></thead><tbody>'+rowsHtml+'</tbody></table>';
+      '</tr></thead><tbody>'+rowsHtml+'</tbody></table></div>';
 
     previewBtn.disabled = false; previewBtn.textContent = '미리보기·인쇄';
     document.getElementById('previewOverlay').classList.add('show');
