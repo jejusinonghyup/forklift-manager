@@ -204,6 +204,7 @@
       <div class="wheel-sep">:</div>
       <div class="wheel-col" id="minuteWheel"></div>
     </div>
+    <p class="msg" id="timeSheetError"></p>
     <div class="time-sheet-actions">
       <button type="button" class="btn btn-outline" id="timeSheetCancel">취소</button>
       <button type="button" class="btn" id="timeSheetConfirm">확인</button>
@@ -302,6 +303,8 @@
   });
 
   let completionTargetLogId = null;
+  let completionTargetStartTime = '';
+  let openLogsStartTimes = {};
 
   function setTimeDisplay(fieldId, value){
     const display = document.getElementById(fieldId + 'Display');
@@ -315,6 +318,7 @@
     activeTimeFieldId = fieldId;
     document.getElementById('timeSheetTitle').textContent = title;
     document.getElementById('timeSheetClear').style.display = 'block';
+    document.getElementById('timeSheetError').className = 'msg';
     const current = document.getElementById(fieldId).value;
     const now = new Date();
     const [h, m] = current ? current.split(':').map(Number) : [now.getHours(), now.getMinutes()];
@@ -329,9 +333,11 @@
 
   function openCompletionTimeSheet(logId){
     completionTargetLogId = logId;
+    completionTargetStartTime = openLogsStartTimes[logId] || '';
     activeTimeFieldId = null;
     document.getElementById('timeSheetTitle').textContent = '사용 종료 시간 입력';
     document.getElementById('timeSheetClear').style.display = 'none'; // 종료 처리는 비워둘 수 없음
+    document.getElementById('timeSheetError').className = 'msg';
     const now = new Date();
     document.getElementById('timeSheetOverlay').classList.add('show');
     requestAnimationFrame(() => {
@@ -342,7 +348,11 @@
     });
   }
 
-  function closeTimeSheet(){ document.getElementById('timeSheetOverlay').classList.remove('show'); completionTargetLogId = null; }
+  function closeTimeSheet(){
+    document.getElementById('timeSheetOverlay').classList.remove('show');
+    document.getElementById('timeSheetError').className = 'msg';
+    completionTargetLogId = null;
+  }
 
   document.getElementById('startTimeDisplay').addEventListener('click', () => openTimeSheet('startTime', '시작 시간 선택'));
   document.getElementById('timeSheetCancel').addEventListener('click', closeTimeSheet);
@@ -357,10 +367,16 @@
     const val = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
 
     if (completionTargetLogId){
+      const errEl = document.getElementById('timeSheetError');
+      if (completionTargetStartTime && val <= completionTargetStartTime){
+        showMsg(errEl, '종료 시간은 시작 시간(' + completionTargetStartTime + ') 이후여야 합니다.', 'error');
+        return; // 시트를 닫지 않고 다시 선택하도록 함
+      }
       const targetId = completionTargetLogId;
       closeTimeSheet();
       try{
         await db.collection('logs').doc(targetId).update({ endTime: val });
+        document.getElementById('logMsg').className = 'msg'; // 이전 "사용 시작 등록" 안내 메시지 정리
         loadOpenLogs();
         loadRecentLogs();
       }catch(err){
@@ -516,8 +532,10 @@
         .where('uid', '==', currentUser.uid)
         .where('endTime', '==', '')
         .get();
-      if (snap.empty){ card.innerHTML = '<p class="empty-state">진행중인 사용 기록이 없습니다.</p>'; return; }
+      if (snap.empty){ card.innerHTML = '<p class="empty-state">진행중인 사용 기록이 없습니다.</p>'; openLogsStartTimes = {}; return; }
       const docs = snap.docs.slice().sort((a,b) => (b.data().useDate||'').localeCompare(a.data().useDate||''));
+      openLogsStartTimes = {};
+      docs.forEach(d => { openLogsStartTimes[d.id] = d.data().startTime || ''; });
       card.innerHTML = docs.map(d => {
         const l = d.data();
         return '<div class="log-item">'+
