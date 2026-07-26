@@ -176,7 +176,7 @@
           <thead>
             <tr>
               <th>사용일자</th><th>사무소</th><th>호수(차대번호)</th><th>사용자</th><th>소속</th>
-              <th>목적</th><th>시간</th><th>특이사항</th><th class="no-print">관리</th>
+              <th>시간</th><th>특이사항</th><th class="no-print">관리</th>
             </tr>
           </thead>
           <tbody id="logTableBody"></tbody>
@@ -370,7 +370,7 @@
     if (office) query = query.where('office', '==', office);
 
     const tbody = document.getElementById('logTableBody');
-    tbody.innerHTML = '<tr><td colspan="9">불러오는 중…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8">불러오는 중…</td></tr>';
 
     try{
       const snap = await query.limit(500).get();
@@ -382,7 +382,7 @@
       currentLogs = logs;
       renderLogTable(logs);
     }catch(err){
-      tbody.innerHTML = '<tr><td colspan="9">조회 실패: '+escapeHtml(err.message)+'</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8">조회 실패: '+escapeHtml(err.message)+'</td></tr>';
     }
   }
 
@@ -393,7 +393,9 @@
     if (!logs.length){ tbody.innerHTML = ''; return; }
 
     tbody.innerHTML = logs.map(l => {
-      const timeRange = (l.startTime || l.endTime) ? (l.startTime + (l.endTime?' ~ '+l.endTime:'')) : '-';
+      const timeRange = l.startTime && l.endTime ? (l.startTime+' ~ '+l.endTime)
+        : l.startTime && !l.endTime ? (l.startTime+' ~ 진행중')
+        : '-';
       const editBadge = l.editCount ? '<span class="edit-badge historyBtn">수정됨 '+l.editCount+'회</span>' : '';
       return '<tr data-id="'+l.id+'">'+
         '<td data-label="사용일자">'+escapeHtml(l.useDate)+'</td>'+
@@ -401,7 +403,6 @@
         '<td data-label="호수(차대번호)">'+escapeHtml(l.unitNo)+(l.chassisNo?'('+escapeHtml(l.chassisNo)+')':'')+(l.vehicleModel?' · '+escapeHtml(l.vehicleModel):'')+'</td>'+
         '<td data-label="사용자">'+(l.position?escapeHtml(l.position)+' ':'')+escapeHtml(l.userName)+editBadge+'</td>'+
         '<td data-label="소속">'+escapeHtml(l.department||'-')+'</td>'+
-        '<td data-label="목적">'+escapeHtml(l.purpose||'-')+'</td>'+
         '<td data-label="시간">'+escapeHtml(timeRange)+'</td>'+
         '<td data-label="특이사항">'+escapeHtml(l.notes||'-')+'</td>'+
         '<td data-label="관리" class="actions-cell no-print">'+
@@ -424,7 +425,7 @@
     const id = tr.dataset.id;
     const detailTr = document.createElement('tr');
     detailTr.className = 'history-row';
-    detailTr.innerHTML = '<td colspan="9"><div class="history-block">불러오는 중…</div></td>';
+    detailTr.innerHTML = '<td colspan="8"><div class="history-block">불러오는 중…</div></td>';
     tr.after(detailTr);
 
     try{
@@ -457,7 +458,6 @@
       '<td><input type="text" class="edit-input" id="e_userName" value="'+escapeHtml(log.userName)+'" placeholder="이름">'+
           '<input type="text" class="edit-input" id="e_position" value="'+escapeHtml(log.position||'')+'" placeholder="직명" style="margin-top:4px;"></td>'+
       '<td><input type="text" class="edit-input" id="e_department" value="'+escapeHtml(log.department||'')+'"></td>'+
-      '<td><input type="text" class="edit-input" id="e_purpose" value="'+escapeHtml(log.purpose||'')+'"></td>'+
       '<td><input type="time" class="edit-input" id="e_startTime" value="'+escapeHtml(log.startTime||'')+'" style="margin-bottom:4px;">'+
           '<input type="time" class="edit-input" id="e_endTime" value="'+escapeHtml(log.endTime||'')+'"></td>'+
       '<td><textarea class="edit-input" id="e_notes">'+escapeHtml(log.notes||'')+'</textarea></td>'+
@@ -482,14 +482,13 @@
       userName: tr.querySelector('#e_userName').value.trim(),
       position: tr.querySelector('#e_position').value.trim(),
       department: tr.querySelector('#e_department').value.trim(),
-      purpose: tr.querySelector('#e_purpose').value.trim(),
       startTime: tr.querySelector('#e_startTime').value,
       endTime: tr.querySelector('#e_endTime').value,
       notes: tr.querySelector('#e_notes').value.trim()
     };
 
     try{
-      const fields = ['useDate','unitNo','vehicleModel','chassisNo','userName','position','department','purpose','startTime','endTime','notes'];
+      const fields = ['useDate','unitNo','vehicleModel','chassisNo','userName','position','department','startTime','endTime','notes'];
       const beforeSnapshot = {}; fields.forEach(f => beforeSnapshot[f] = before[f] || '');
 
       const batch = db.batch();
@@ -558,13 +557,15 @@
     }
 
     const rowsHtml = currentLogs.map(l => {
-      const timeRange = (l.startTime||l.endTime) ? (l.startTime+(l.endTime?' ~ '+l.endTime:'')) : '-';
+      const timeRange = l.startTime && l.endTime ? (l.startTime+' ~ '+l.endTime)
+        : l.startTime && !l.endTime ? (l.startTime+' ~ 진행중')
+        : '-';
       const unitCell = escapeHtml(l.unitNo) + (l.chassisNo ? '('+escapeHtml(l.chassisNo)+')' : '');
       let row = '<tr>'+
         '<td>'+escapeHtml(l.useDate)+'</td><td>'+escapeHtml(l.office)+'</td>'+
         '<td>'+unitCell+'</td>'+
         '<td>'+(l.position?escapeHtml(l.position)+' ':'')+escapeHtml(l.userName)+'</td>'+
-        '<td>'+escapeHtml(l.purpose||'-')+'</td><td>'+escapeHtml(timeRange)+'</td>'+
+        '<td>'+escapeHtml(timeRange)+'</td>'+
         '<td>'+escapeHtml(l.notes||'-')+'</td>'+
       '</tr>';
       if (includeEdits && historyMap[l.id] && historyMap[l.id].length){
@@ -573,7 +574,7 @@
           const dateStr = dt ? (dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0')+' '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0')) : '-';
           return '<div>· '+dateStr+' · '+escapeHtml(h.editedBy||'-')+' · 사유: '+escapeHtml(h.reason||'-')+'</div>';
         }).join('');
-        row += '<tr><td colspan="7"><div class="history-block"><b>수정 이력</b>'+histHtml+'</div></td></tr>';
+        row += '<tr><td colspan="6"><div class="history-block"><b>수정 이력</b>'+histHtml+'</div></td></tr>';
       }
       return row;
     }).join('');
@@ -589,10 +590,10 @@
         '</tr></table>'+
       '</div>'+
       '<table class="log-table"><colgroup>'+
-        '<col style="width:9%"><col style="width:13%"><col style="width:19%"><col style="width:12%">'+
-        '<col style="width:9%"><col style="width:11%"><col style="width:27%">'+
+        '<col style="width:11%"><col style="width:15%"><col style="width:21%">'+
+        '<col style="width:14%"><col style="width:13%"><col style="width:26%">'+
       '</colgroup><thead><tr>'+
-        '<th>사용일자</th><th>사무소</th><th>호수(차대번호)</th><th>사용자</th><th>목적</th><th>시간</th><th>특이사항</th>'+
+        '<th>사용일자</th><th>사무소</th><th>호수(차대번호)</th><th>사용자</th><th>시간</th><th>특이사항</th>'+
       '</tr></thead><tbody>'+rowsHtml+'</tbody></table>';
 
     previewBtn.disabled = false; previewBtn.textContent = '미리보기·인쇄';
@@ -602,10 +603,10 @@
   // ---- CSV 다운로드 ----
   document.getElementById('csvBtn').addEventListener('click', () => {
     if (!currentLogs.length){ alert('다운로드할 데이터가 없습니다.'); return; }
-    const headers = ['사용일자','사무소','호수','차종/모델','차대번호','사용자','직명','소속','목적','시작시간','종료시간','특이사항'];
+    const headers = ['사용일자','사무소','호수','차종/모델','차대번호','사용자','직명','소속','시작시간','종료시간','상태','특이사항'];
     const rows = currentLogs.map(l => [
       l.useDate, l.office, l.unitNo||'', l.vehicleModel||'', l.chassisNo||'', l.userName, l.position||'', l.department||'',
-      l.purpose||'', l.startTime||'', l.endTime||'', (l.notes||'').replace(/\n/g,' ')
+      l.startTime||'', l.endTime||'', (l.startTime && !l.endTime) ? '진행중' : '완료', (l.notes||'').replace(/\n/g,' ')
     ]);
     const csv = [headers, ...rows].map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
     const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });

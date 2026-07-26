@@ -88,6 +88,9 @@
   .wheel-sep{font-weight:900;font-size:18px;z-index:1;color:var(--ink-soft);}
   .time-sheet-actions{display:flex;gap:10px;margin-top:18px;}
   .time-sheet-actions .btn{margin-top:0;flex:1;}
+  .btn-sm-full{width:100%;padding:10px;border:none;border-radius:8px;background:var(--ink);color:#fff;
+    font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;}
+  .btn-sm-full:hover{background:#000;}
   .time-sheet-clear{background:none;border:none;color:var(--ink-soft);font-size:12.5px;text-decoration:underline;
     display:block;margin:10px auto 0;cursor:pointer;font-family:inherit;}
 </style>
@@ -166,36 +169,23 @@
           <input type="date" id="useDate" required>
         </div>
         <div class="field">
-          <label>사용목적</label>
-          <select id="purpose">
-            <option value="">선택 안함</option>
-            <option value="상차">상차</option>
-            <option value="하차">하차</option>
-            <option value="자재 운반">자재 운반</option>
-            <option value="적재/보관">적재/보관</option>
-            <option value="기타">기타</option>
-          </select>
-        </div>
-        <div class="row2">
-          <div class="field">
-            <label>시작 시간</label>
-            <input type="hidden" id="startTime" value="">
-            <button type="button" class="time-display" id="startTimeDisplay">-- : --</button>
-          </div>
-          <div class="field">
-            <label>종료 시간</label>
-            <input type="hidden" id="endTime" value="">
-            <button type="button" class="time-display" id="endTimeDisplay">-- : --</button>
-          </div>
+          <label>시작 시간</label>
+          <input type="hidden" id="startTime" value="">
+          <button type="button" class="time-display" id="startTimeDisplay">-- : --</button>
+          <p class="hint">사용을 시작할 때 등록하세요. 종료 시간은 다 쓰고 나서 아래에서 따로 입력합니다.</p>
         </div>
         <div class="field">
           <label>특이사항</label>
           <textarea id="notes" placeholder="이상 유무, 사고, 정비 필요 사항 등"></textarea>
         </div>
-        <button type="submit" class="btn" id="submitBtn">사용 기록 등록</button>
+        <button type="submit" class="btn" id="submitBtn">사용 시작 등록</button>
         <div class="msg" id="logMsg"></div>
       </form>
     </div>
+
+    <div class="divider-stripe"></div>
+    <p class="section-title">진행중인 내 사용 기록</p>
+    <div class="card" id="openLogCard"><p class="loading-text">불러오는 중…</p></div>
 
     <div class="divider-stripe"></div>
     <p class="section-title">최근 사용내역 (우리 사무소)</p>
@@ -311,6 +301,8 @@
     });
   });
 
+  let completionTargetLogId = null;
+
   function setTimeDisplay(fieldId, value){
     const display = document.getElementById(fieldId + 'Display');
     document.getElementById(fieldId).value = value;
@@ -319,8 +311,10 @@
   }
 
   function openTimeSheet(fieldId, title){
+    completionTargetLogId = null;
     activeTimeFieldId = fieldId;
     document.getElementById('timeSheetTitle').textContent = title;
+    document.getElementById('timeSheetClear').style.display = 'block';
     const current = document.getElementById(fieldId).value;
     const now = new Date();
     const [h, m] = current ? current.split(':').map(Number) : [now.getHours(), now.getMinutes()];
@@ -332,20 +326,49 @@
       highlightCenter(minuteWheel);
     });
   }
-  function closeTimeSheet(){ document.getElementById('timeSheetOverlay').classList.remove('show'); }
+
+  function openCompletionTimeSheet(logId){
+    completionTargetLogId = logId;
+    activeTimeFieldId = null;
+    document.getElementById('timeSheetTitle').textContent = '사용 종료 시간 입력';
+    document.getElementById('timeSheetClear').style.display = 'none'; // 종료 처리는 비워둘 수 없음
+    const now = new Date();
+    document.getElementById('timeSheetOverlay').classList.add('show');
+    requestAnimationFrame(() => {
+      scrollWheelTo(hourWheel, now.getHours());
+      scrollWheelTo(minuteWheel, now.getMinutes());
+      highlightCenter(hourWheel);
+      highlightCenter(minuteWheel);
+    });
+  }
+
+  function closeTimeSheet(){ document.getElementById('timeSheetOverlay').classList.remove('show'); completionTargetLogId = null; }
 
   document.getElementById('startTimeDisplay').addEventListener('click', () => openTimeSheet('startTime', '시작 시간 선택'));
-  document.getElementById('endTimeDisplay').addEventListener('click', () => openTimeSheet('endTime', '종료 시간 선택'));
   document.getElementById('timeSheetCancel').addEventListener('click', closeTimeSheet);
   document.getElementById('timeSheetOverlay').addEventListener('click', (e) => { if (e.target.id === 'timeSheetOverlay') closeTimeSheet(); });
   document.getElementById('timeSheetClear').addEventListener('click', () => {
     if (activeTimeFieldId) setTimeDisplay(activeTimeFieldId, '');
     closeTimeSheet();
   });
-  document.getElementById('timeSheetConfirm').addEventListener('click', () => {
+  document.getElementById('timeSheetConfirm').addEventListener('click', async () => {
     const h = getCenterIndex(hourWheel);
     const m = getCenterIndex(minuteWheel);
     const val = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+
+    if (completionTargetLogId){
+      const targetId = completionTargetLogId;
+      closeTimeSheet();
+      try{
+        await db.collection('logs').doc(targetId).update({ endTime: val });
+        loadOpenLogs();
+        loadRecentLogs();
+      }catch(err){
+        alert('종료 시간 저장 실패: ' + err.message);
+      }
+      return;
+    }
+
     if (activeTimeFieldId) setTimeDisplay(activeTimeFieldId, val);
     closeTimeSheet();
   });
@@ -458,6 +481,7 @@
   function initMain(){
     document.getElementById('useDate').value = todayISO();
     loadVehicles();
+    loadOpenLogs();
     loadRecentLogs();
   }
 
@@ -484,6 +508,33 @@
     });
   }
 
+  async function loadOpenLogs(){
+    const card = document.getElementById('openLogCard');
+    card.innerHTML = '<p class="loading-text">불러오는 중…</p>';
+    try{
+      const snap = await db.collection('logs')
+        .where('uid', '==', currentUser.uid)
+        .where('endTime', '==', '')
+        .get();
+      if (snap.empty){ card.innerHTML = '<p class="empty-state">진행중인 사용 기록이 없습니다.</p>'; return; }
+      const docs = snap.docs.slice().sort((a,b) => (b.data().useDate||'').localeCompare(a.data().useDate||''));
+      card.innerHTML = docs.map(d => {
+        const l = d.data();
+        return '<div class="log-item">'+
+          '<div class="log-top"><span class="log-vehicle">'+escapeHtml(l.unitNo)+(l.vehicleModel?' · '+escapeHtml(l.vehicleModel):'')+'</span>'+
+          '<span class="log-time">'+escapeHtml(l.useDate)+(l.startTime?' · '+escapeHtml(l.startTime)+' 시작':'')+'</span></div>'+
+          '<div class="log-meta">🟡 진행중'+(l.notes?' · 📝 '+escapeHtml(l.notes):'')+'</div>'+
+          '<button type="button" class="btn btn-sm-full completeBtn" data-id="'+d.id+'" style="margin-top:8px;">사용 종료 시간 입력</button>'+
+        '</div>';
+      }).join('');
+      card.querySelectorAll('.completeBtn').forEach(btn => {
+        btn.addEventListener('click', () => openCompletionTimeSheet(btn.dataset.id));
+      });
+    }catch(err){
+      card.innerHTML = '<p class="empty-state">진행중인 기록을 불러오지 못했습니다.</p>';
+    }
+  }
+
   async function loadRecentLogs(){
     const card = document.getElementById('logListCard');
     card.innerHTML = '<p class="loading-text">불러오는 중…</p>';
@@ -498,11 +549,13 @@
         const l = d.data();
         const ts = l.createdAt && l.createdAt.toDate ? l.createdAt.toDate() : new Date();
         const registeredAt = String(ts.getMonth()+1).padStart(2,'0')+'/'+String(ts.getDate()).padStart(2,'0')+' '+String(ts.getHours()).padStart(2,'0')+':'+String(ts.getMinutes()).padStart(2,'0');
-        const timeRange = (l.startTime || l.endTime) ? (l.startTime + (l.endTime ? ' ~ ' + l.endTime : '')) : '';
+        let timeRange = '';
+        if (l.startTime && l.endTime) timeRange = l.startTime + ' ~ ' + l.endTime;
+        else if (l.startTime && !l.endTime) timeRange = l.startTime + ' ~ 진행중';
         return '<div class="log-item">'+
           '<div class="log-top"><span class="log-vehicle">'+escapeHtml(l.unitNo)+(l.vehicleModel?' · '+escapeHtml(l.vehicleModel):'')+'</span>'+
           '<span class="log-time">'+registeredAt+'</span></div>'+
-          '<div class="log-meta">'+escapeHtml(l.userName)+(l.position?' · '+escapeHtml(l.position):'')+(l.department?' · '+escapeHtml(l.department):'')+(l.purpose?' · '+escapeHtml(l.purpose):'')+(timeRange?' · '+escapeHtml(timeRange):'')+'</div>'+
+          '<div class="log-meta">'+escapeHtml(l.userName)+(l.position?' · '+escapeHtml(l.position):'')+(l.department?' · '+escapeHtml(l.department):'')+(timeRange?' · '+escapeHtml(timeRange):'')+'</div>'+
           (l.notes ? '<div class="log-meta">📝 '+escapeHtml(l.notes)+'</div>' : '')+
         '</div>';
       }).join('');
@@ -538,23 +591,21 @@
         vehicleModel: vehicleOpt.dataset.vehicleModel || '',
         chassisNo: vehicleOpt.dataset.chassisNo || '',
         useDate: useDate,
-        purpose: document.getElementById('purpose').value,
         startTime: document.getElementById('startTime').value,
-        endTime: document.getElementById('endTime').value,
+        endTime: '',
         notes: document.getElementById('notes').value.trim(),
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      showMsg(msgEl, '사용 기록이 등록되었습니다.', 'success');
-      document.getElementById('purpose').value = '';
+      showMsg(msgEl, '사용 시작 기록이 등록되었습니다. 다 쓰신 뒤 아래 "진행중인 내 사용 기록"에서 종료 시간을 입력해 주세요.', 'success');
       setTimeDisplay('startTime', '');
-      setTimeDisplay('endTime', '');
       document.getElementById('notes').value = '';
       vehicleSel.value = '';
+      loadOpenLogs();
       loadRecentLogs();
     }catch(err){
       showMsg(msgEl, '등록 실패: ' + err.message, 'error');
     }finally{
-      submitBtn.disabled = false; submitBtn.textContent = '사용 기록 등록';
+      submitBtn.disabled = false; submitBtn.textContent = '사용 시작 등록';
     }
   });
 </script>
