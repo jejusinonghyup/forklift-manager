@@ -530,6 +530,7 @@
     try{
       const snap = await db.collection('logs')
         .where('uid', '==', currentUser.uid)
+        .where('office', '==', profile.office)
         .where('endTime', '==', '')
         .get();
       if (snap.empty){ card.innerHTML = '<p class="empty-state">진행중인 사용 기록이 없습니다.</p>'; openLogsStartTimes = {}; return; }
