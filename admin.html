@@ -588,7 +588,14 @@
       }
     }
 
-    const rowsHtml = currentLogs.map(l => {
+    // 인쇄물은 오래된 순 → 최근 순(사용일자 → 시작시간)으로 정렬 (화면 조회 목록은 최신순 그대로 유지)
+    const sortedLogs = currentLogs.slice().sort((a, b) => {
+      const dateCompare = (a.useDate||'').localeCompare(b.useDate||'');
+      if (dateCompare !== 0) return dateCompare;
+      return (a.startTime||'').localeCompare(b.startTime||'');
+    });
+
+    const rowsHtml = sortedLogs.map(l => {
       const timeRange = l.startTime && l.endTime ? (l.startTime+' ~ '+l.endTime)
         : l.startTime && !l.endTime ? (l.startTime+' ~ 진행중')
         : '-';
@@ -635,8 +642,13 @@
   // ---- CSV 다운로드 ----
   document.getElementById('csvBtn').addEventListener('click', () => {
     if (!currentLogs.length){ alert('다운로드할 데이터가 없습니다.'); return; }
+    const sortedForExport = currentLogs.slice().sort((a, b) => {
+      const dateCompare = (a.useDate||'').localeCompare(b.useDate||'');
+      if (dateCompare !== 0) return dateCompare;
+      return (a.startTime||'').localeCompare(b.startTime||'');
+    });
     const headers = ['사용일자','사무소','호수','차종/모델','차대번호','사용자','직명','소속','시작시간','종료시간','상태','특이사항'];
-    const rows = currentLogs.map(l => [
+    const rows = sortedForExport.map(l => [
       l.useDate, l.office, l.unitNo||'', l.vehicleModel||'', l.chassisNo||'', l.userName, l.position||'', l.department||'',
       l.startTime||'', l.endTime||'', (l.startTime && !l.endTime) ? '진행중' : '완료', (l.notes||'').replace(/\n/g,' ')
     ]);
