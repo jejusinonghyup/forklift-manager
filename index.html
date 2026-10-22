@@ -97,15 +97,9 @@
   .license-banner.show{display:block;}
   .license-banner.warn{background:#FFF6E0;border-color:var(--amber);color:var(--amber-deep);}
   .license-banner.expired{background:#FDECEA;border-color:var(--danger);color:var(--danger);}
-  .license-overlay{position:fixed;inset:0;background:rgba(28,27,26,.55);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:16px;}
-  .license-overlay.show{display:flex;}
-  .license-pop{background:#fff;border-radius:16px;max-width:420px;width:100%;margin-top:8px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.3);}
-  .license-pop .bar{height:8px;background:var(--amber);}
-  .license-pop.expired .bar{background:var(--danger);}
-  .license-pop .body{padding:18px 20px 20px;}
-  .license-pop h3{margin:0 0 8px;font-size:18px;font-weight:900;}
-  .license-pop p{margin:0 0 14px;font-size:14px;line-height:1.6;color:var(--ink-soft);}
-  .license-pop p b{color:var(--ink);}
+  @keyframes licBlink{0%,100%{opacity:1;}50%{opacity:.2;}}
+  .license-banner.blink .lic-txt{animation:licBlink 1.1s ease-in-out infinite;}
+  @media (prefers-reduced-motion: reduce){.license-banner.blink .lic-txt{animation:none;}}
   .lic-radio{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-weight:700;font-size:14px;cursor:pointer;}
   .lic-radio:has(input:checked){border-color:var(--amber);background:#FFF6E0;}
 </style>
@@ -169,19 +163,6 @@
       <div class="msg" id="setupMsg"></div>
     </div>
   </main>
-</div>
-
-<!-- 면허 갱신 안내 팝업 -->
-<div class="license-overlay" id="licenseOverlay">
-  <div class="license-pop" id="licensePop">
-    <div class="bar"></div>
-    <div class="body">
-      <h3 id="licensePopTitle">면허증 갱신 안내</h3>
-      <p id="licensePopText"></p>
-      <button class="btn" id="licensePopClose" type="button">확인</button>
-      <button class="link-btn" id="licensePopEdit" type="button" style="margin-top:10px;">갱신일 수정하기</button>
-    </div>
-  </div>
 </div>
 
 <!-- ===== 메인 화면 (기록 입력) ===== -->
@@ -585,10 +566,11 @@
   }
   function licenseStatus(){
     const st = licenseState(profile);
-    return ['expired','warn','unknown','unanswered'].includes(st.type) ? st : null;
+    return ['none','expired','warn','unknown','unanswered'].includes(st.type) ? st : null;
   }
   function licenseMessage(st){
     if (st.type === 'expired') return '면허증 유효기간(<b>'+st.exp+'</b>)이 <b>'+Math.abs(st.days)+'일 지났습니다.</b> 지게차를 운전하려면 먼저 갱신하고, 관리자에게 알려 주세요.';
+    if (st.type === 'none') return '본 사용대장은 <b>지게차 면허증 보유자만</b> 이용할 수 있습니다. 면허증을 취득하신 뒤 <b>"정보 수정"</b>에서 보유로 변경해 주세요.';
     if (st.type === 'warn') return '면허증 유효기간(<b>'+st.exp+'</b>)까지 <b>'+(st.days===0?'오늘이 마지막입니다.':st.days+'일 남았습니다.')+'</b> 지금부터 갱신 신청이 가능합니다 (만료 6개월 전부터).';
     if (st.type === 'unknown') return '면허증 만료일이 등록되어 있지 않습니다. 면허증을 확인해 <b>"정보 수정"</b>에서 만료일을 입력해 주세요.';
     return '지게차 면허증 보유 여부가 등록되어 있지 않습니다. <b>"정보 수정"</b>에서 입력해 주세요.';
@@ -597,23 +579,22 @@
     const el = document.getElementById('licenseBanner');
     const st = licenseStatus();
     if (!st){ el.className = 'license-banner'; el.innerHTML = ''; return null; }
-    el.className = 'license-banner show ' + (st.type==='expired' ? 'expired' : 'warn');
-    el.innerHTML = (st.type==='expired' ? '⚠ ' : '🔔 ') + licenseMessage(st);
+    el.className = 'license-banner show ' + ((st.type==='expired'||st.type==='none') ? 'expired' : 'warn') + ((st.type==='expired'||st.type==='warn') ? ' blink' : '');
+    el.innerHTML = '<span class="lic-txt">' + ((st.type==='expired'||st.type==='none') ? '⚠ ' : '🔔 ') + licenseMessage(st) + '</span>';
     return st;
   }
+  // 팝업 대신 상단 배너로만 안내 (갱신 시기/만료는 깜빡임)
   function showLicensePopup(){
-    const st = renderLicenseBanner();
-    if (!st || (st.type !== 'expired' && st.type !== 'warn')) return; // 팝업은 갱신 시기/만료일 때만, 미입력은 배너만
-    document.getElementById('licensePop').className = 'license-pop ' + st.type;
-    document.getElementById('licensePopTitle').textContent = st.type==='expired' ? '면허증 유효기간 경과' : '면허증 갱신 시기 도래';
-    document.getElementById('licensePopText').innerHTML = licenseMessage(st);
-    document.getElementById('licenseOverlay').classList.add('show');
+    applyLicenseGate();
+    renderLicenseBanner();
   }
-  document.getElementById('licensePopClose').addEventListener('click', () => document.getElementById('licenseOverlay').classList.remove('show'));
-  document.getElementById('licensePopEdit').addEventListener('click', () => {
-    document.getElementById('licenseOverlay').classList.remove('show');
-    document.getElementById('editProfileBtn').click();
-  });
+  // 면허 미보유자는 사용 기록 입력 불가
+  function isLicenseBlocked(){ return licenseState(profile).type === 'none'; }
+  function applyLicenseGate(){
+    const blocked = isLicenseBlocked();
+    document.querySelectorAll('#logForm input, #logForm select, #logForm textarea, #logForm button').forEach(el => { el.disabled = blocked; });
+    document.getElementById('logForm').style.opacity = blocked ? '.45' : '';
+  }
 
   function initMain(){
     document.getElementById('useDate').value = todayISO();
@@ -709,6 +690,7 @@
     e.preventDefault();
     const msgEl = document.getElementById('logMsg');
     msgEl.className = 'msg';
+    if (isLicenseBlocked()){ showMsg(msgEl, '지게차 면허증 보유자만 사용 기록을 입력할 수 있습니다.', 'error'); return; }
     const vehicleSel = document.getElementById('vehicle');
     const vehicleOpt = vehicleSel.options[vehicleSel.selectedIndex];
     const useDate = document.getElementById('useDate').value;
