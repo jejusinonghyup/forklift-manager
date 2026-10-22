@@ -93,6 +93,21 @@
   .btn-sm-full:hover{background:#000;}
   .time-sheet-clear{background:none;border:none;color:var(--ink-soft);font-size:12.5px;text-decoration:underline;
     display:block;margin:10px auto 0;cursor:pointer;font-family:inherit;}
+  .license-banner{display:none;border-radius:12px;padding:12px 14px;margin:0 0 14px;font-size:13.5px;font-weight:700;line-height:1.5;border:1.5px solid;}
+  .license-banner.show{display:block;}
+  .license-banner.warn{background:#FFF6E0;border-color:var(--amber);color:var(--amber-deep);}
+  .license-banner.expired{background:#FDECEA;border-color:var(--danger);color:var(--danger);}
+  .license-overlay{position:fixed;inset:0;background:rgba(28,27,26,.55);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:16px;}
+  .license-overlay.show{display:flex;}
+  .license-pop{background:#fff;border-radius:16px;max-width:420px;width:100%;margin-top:8px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.3);}
+  .license-pop .bar{height:8px;background:var(--amber);}
+  .license-pop.expired .bar{background:var(--danger);}
+  .license-pop .body{padding:18px 20px 20px;}
+  .license-pop h3{margin:0 0 8px;font-size:18px;font-weight:900;}
+  .license-pop p{margin:0 0 14px;font-size:14px;line-height:1.6;color:var(--ink-soft);}
+  .license-pop p b{color:var(--ink);}
+  .lic-radio{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-weight:700;font-size:14px;cursor:pointer;}
+  .lic-radio:has(input:checked){border-color:var(--amber);background:#FFF6E0;}
 </style>
 </head>
 <body>
@@ -135,10 +150,38 @@
         <label>소속/부서</label>
         <input type="text" id="setupDept" placeholder="예: 유통사업소">
       </div>
+      <div class="field">
+        <label>지게차 면허증 보유<span class="req">*</span></label>
+        <div style="display:flex;gap:8px;">
+          <label class="lic-radio"><input type="radio" name="setupLicenseHeld" value="yes"> 보유</label>
+          <label class="lic-radio"><input type="radio" name="setupLicenseHeld" value="no"> 미보유</label>
+        </div>
+      </div>
+      <div class="field" id="setupLicenseBox" style="display:none;">
+        <label>면허증 유효기간 만료일</label>
+        <input type="date" id="setupLicense">
+        <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;font-weight:700;">
+          <input type="checkbox" id="setupLicenseUnknown"> 만료일을 모릅니다 (관리자가 확인합니다)
+        </label>
+        <p style="margin:6px 0 0;font-size:12px;color:var(--ink-soft);">갱신 신청은 만료일 6개월 전부터 가능하며, 그때부터 안내 팝업이 표시됩니다.</p>
+      </div>
       <button class="btn" id="setupSaveBtn">저장하고 시작하기</button>
       <div class="msg" id="setupMsg"></div>
     </div>
   </main>
+</div>
+
+<!-- 면허 갱신 안내 팝업 -->
+<div class="license-overlay" id="licenseOverlay">
+  <div class="license-pop" id="licensePop">
+    <div class="bar"></div>
+    <div class="body">
+      <h3 id="licensePopTitle">면허증 갱신 안내</h3>
+      <p id="licensePopText"></p>
+      <button class="btn" id="licensePopClose" type="button">확인</button>
+      <button class="link-btn" id="licensePopEdit" type="button" style="margin-top:10px;">갱신일 수정하기</button>
+    </div>
+  </div>
 </div>
 
 <!-- ===== 메인 화면 (기록 입력) ===== -->
@@ -158,6 +201,7 @@
   </header>
 
   <main>
+    <div class="license-banner" id="licenseBanner"></div>
     <div class="card">
       <form id="logForm">
         <div class="field">
@@ -406,6 +450,7 @@
     if (!doc.exists){
       await loadOfficesInto('setupOffice');
       document.getElementById('setupName').value = user.displayName || '';
+      setLicenseForm(null);
       showScreen('setupScreen');
     } else {
       profile = doc.data();
@@ -423,8 +468,31 @@
     document.getElementById('setupPosition').value = profile.position || '';
     document.getElementById('setupName').value = profile.name || '';
     document.getElementById('setupDept').value = profile.department || '';
+    setLicenseForm(profile);
     showScreen('setupScreen');
   });
+
+  function setLicenseForm(p){
+    const st = licenseState(p);
+    const held = (p && (p.licenseHeld || (p.licenseExpiry ? 'yes' : ''))) || '';
+    document.querySelectorAll('input[name=setupLicenseHeld]').forEach(r => r.checked = (r.value === held));
+    document.getElementById('setupLicense').value = (p && p.licenseExpiry) || '';
+    document.getElementById('setupLicenseUnknown').checked = (held === 'yes' && !(p && p.licenseExpiry));
+    syncLicenseForm();
+  }
+  function readLicenseForm(){
+    const r = document.querySelector('input[name=setupLicenseHeld]:checked');
+    const held = r ? r.value : '';
+    const unknown = document.getElementById('setupLicenseUnknown').checked;
+    return { licenseHeld: held, unknown, licenseExpiry: (held === 'yes' && !unknown) ? (document.getElementById('setupLicense').value || '') : '' };
+  }
+  function syncLicenseForm(){
+    const held = (document.querySelector('input[name=setupLicenseHeld]:checked') || {}).value;
+    document.getElementById('setupLicenseBox').style.display = held === 'yes' ? 'block' : 'none';
+    document.getElementById('setupLicense').disabled = document.getElementById('setupLicenseUnknown').checked;
+  }
+  document.querySelectorAll('input[name=setupLicenseHeld]').forEach(r => r.addEventListener('change', syncLicenseForm));
+  document.getElementById('setupLicenseUnknown').addEventListener('change', syncLicenseForm);
 
   async function loadOfficesInto(selectId){
     const sel = document.getElementById(selectId);
@@ -448,8 +516,12 @@
     const position = document.getElementById('setupPosition').value.trim();
     const name = document.getElementById('setupName').value.trim();
     const department = document.getElementById('setupDept').value.trim();
+    const lic = readLicenseForm();
     const msgEl = document.getElementById('setupMsg');
     if (!office || !name){ showMsg(msgEl, '사무소와 이름을 입력해 주세요.', 'error'); return; }
+    if (!lic.licenseHeld){ showMsg(msgEl, '지게차 면허증 보유 여부를 선택해 주세요.', 'error'); return; }
+    if (lic.licenseHeld === 'yes' && !lic.licenseExpiry && !lic.unknown){ showMsg(msgEl, '면허증 만료일을 입력하거나 "만료일을 모릅니다"를 체크해 주세요.', 'error'); return; }
+    const licenseHeld = lic.licenseHeld, licenseExpiry = lic.licenseExpiry;
 
     const previousOffice = profile ? profile.office : null;
     const officeChanged = previousOffice && office !== previousOffice;
@@ -462,7 +534,7 @@
 
     try{
       await db.collection('users').doc(currentUser.uid).set({
-        name, office, position, department, email: currentUser.email,
+        name, office, position, department, licenseHeld, licenseExpiry, email: currentUser.email,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
@@ -473,7 +545,7 @@
         document.getElementById('adminLinkBtn').style.display = 'none';
       }
 
-      profile = { name, office, position, department };
+      profile = { name, office, position, department, licenseHeld, licenseExpiry };
       document.getElementById('chipName').textContent = name + (position ? ' · ' + position : '');
       document.getElementById('chipOffice').textContent = office;
       showScreen('mainScreen');
@@ -494,8 +566,58 @@
   document.getElementById('adminLinkBtn').addEventListener('click', () => { window.location.href = 'admin.html'; });
 
   // ---- 메인 화면 ----
+  // ---- 면허 갱신 안내 ----
+  // ---- 면허 상태 계산 (갱신 신청은 만료일 6개월 전부터 가능) ----
+  const LICENSE_OPEN_MONTHS = 6;
+  function licenseState(u){
+    u = u || {};
+    const held = u.licenseHeld || (u.licenseExpiry ? 'yes' : '');
+    if (held === 'no') return { type:'none' };
+    if (held !== 'yes') return { type:'unanswered' };
+    if (!u.licenseExpiry) return { type:'unknown' };
+    const n = new Date(); const today = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+    const e = new Date(u.licenseExpiry + 'T00:00:00');
+    const days = Math.round((e - today) / 86400000);
+    const openDate = new Date(e); openDate.setMonth(openDate.getMonth() - LICENSE_OPEN_MONTHS);
+    if (days < 0) return { type:'expired', days, exp:u.licenseExpiry };
+    if (today >= openDate) return { type:'warn', days, exp:u.licenseExpiry };
+    return { type:'ok', days, exp:u.licenseExpiry };
+  }
+  function licenseStatus(){
+    const st = licenseState(profile);
+    return ['expired','warn','unknown','unanswered'].includes(st.type) ? st : null;
+  }
+  function licenseMessage(st){
+    if (st.type === 'expired') return '면허증 유효기간(<b>'+st.exp+'</b>)이 <b>'+Math.abs(st.days)+'일 지났습니다.</b> 지게차를 운전하려면 먼저 갱신하고, 관리자에게 알려 주세요.';
+    if (st.type === 'warn') return '면허증 유효기간(<b>'+st.exp+'</b>)까지 <b>'+(st.days===0?'오늘이 마지막입니다.':st.days+'일 남았습니다.')+'</b> 지금부터 갱신 신청이 가능합니다 (만료 6개월 전부터).';
+    if (st.type === 'unknown') return '면허증 만료일이 등록되어 있지 않습니다. 면허증을 확인해 <b>"정보 수정"</b>에서 만료일을 입력해 주세요.';
+    return '지게차 면허증 보유 여부가 등록되어 있지 않습니다. <b>"정보 수정"</b>에서 입력해 주세요.';
+  }
+  function renderLicenseBanner(){
+    const el = document.getElementById('licenseBanner');
+    const st = licenseStatus();
+    if (!st){ el.className = 'license-banner'; el.innerHTML = ''; return null; }
+    el.className = 'license-banner show ' + (st.type==='expired' ? 'expired' : 'warn');
+    el.innerHTML = (st.type==='expired' ? '⚠ ' : '🔔 ') + licenseMessage(st);
+    return st;
+  }
+  function showLicensePopup(){
+    const st = renderLicenseBanner();
+    if (!st || (st.type !== 'expired' && st.type !== 'warn')) return; // 팝업은 갱신 시기/만료일 때만, 미입력은 배너만
+    document.getElementById('licensePop').className = 'license-pop ' + st.type;
+    document.getElementById('licensePopTitle').textContent = st.type==='expired' ? '면허증 유효기간 경과' : '면허증 갱신 시기 도래';
+    document.getElementById('licensePopText').innerHTML = licenseMessage(st);
+    document.getElementById('licenseOverlay').classList.add('show');
+  }
+  document.getElementById('licensePopClose').addEventListener('click', () => document.getElementById('licenseOverlay').classList.remove('show'));
+  document.getElementById('licensePopEdit').addEventListener('click', () => {
+    document.getElementById('licenseOverlay').classList.remove('show');
+    document.getElementById('editProfileBtn').click();
+  });
+
   function initMain(){
     document.getElementById('useDate').value = todayISO();
+    showLicensePopup();
     loadVehicles();
     loadOpenLogs();
     loadRecentLogs();
